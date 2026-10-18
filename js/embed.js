@@ -83,11 +83,13 @@ async function tsne(E, N, d, rand, onProgress, { perplexity = 25, iters = 320, e
 }
 
 /**
- * The visitor's most played songs, placed on a 0..1000 square so that songs played in the same sittings sit close together.
- * Returns { songs, years } where each song is {i, x, y, plays, first, last, name, artist, id, yr: plays per year}, or { songs: [], reason } when there is too little history.
+ * Every song the visitor played (30 seconds or more), placed on a 0..1000 square so that songs played in the same sittings sit close together.
+ * The skeleton of the map comes from the most played songs (t-SNE); every other song is placed beside the skeleton songs it was played with.
+ * Returns { songs, years } where each song is {i, x, y, plays, first, last, name, artist, id, yr: plays per year},
+ * or { songs: [], reason } when there is too little history.
  */
-export async function buildSongSpace(real, { maxSongs = 1200, onProgress = () => {} } = {}) {
-  const top = A.songs(real).slice(0, maxSongs), N = top.length;
+export async function buildSongSpace(real, { coreSize = 1200, onProgress = () => {} } = {}) {
+  const top = A.songs(real), N = top.length;      // merged by title + artist, most played first
   if (N < 60) return { songs: [], reason: "few" };
   const index = new Map(top.map((s, i) => [s.key, i]));
   const years = A.byYear(real).map(y => y.year), yi = new Map(years.map((y, i) => [y, i]));
@@ -95,7 +97,7 @@ export async function buildSongSpace(real, { maxSongs = 1200, onProgress = () =>
   const sessions = []; let cur = new Set(), prevEnd = null;
   for (const r of real) {
     if (prevEnd !== null && r.ts - r.ms - prevEnd > SESSION_GAP_MS) { if (cur.size >= 2) sessions.push([...cur]); cur = new Set(); }
-    const i = index.get(r.key); if (i !== undefined) { cur.add(i); yr[i][yi.get(r.y)]++; }
+    const i = index.get(r.key); cur.add(i); yr[i][yi.get(r.y)]++;
     prevEnd = r.ts;
   }
   if (cur.size >= 2) sessions.push([...cur]);
@@ -107,17 +109,47 @@ export async function buildSongSpace(real, { maxSongs = 1200, onProgress = () =>
   const colIdx = new Int32Array(rowStart[N]), val = new Float32Array(rowStart[N]), fill = rowStart.slice(0, N);
   sessions.forEach((s, c) => { const w = 1 / Math.log(2 + s.length); for (const i of s) { colIdx[fill[i]] = c; val[fill[i]++] = w; } });
   for (let i = 0; i < N; i++) { let n = 0; for (let e = rowStart[i]; e < rowStart[i + 1]; e++) n += val[e] * val[e]; n = Math.sqrt(n) || 1; for (let e = rowStart[i]; e < rowStart[i + 1]; e++) val[e] /= n; }
-  onProgress(0.05); await yieldNow();
+  onProgress(0.03); await yieldNow();
   const rand = rng(7), k = Math.min(24, N - 1);
-  const E = lowRank(N, M, rowStart, colIdx, val, k, 25, rand);
-  onProgress(0.2); await yieldNow();
-  const Y = await tsne(E, N, k, rand, onProgress);
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (let i = 0; i < N; i++) { minX = Math.min(minX, Y[i * 2]); maxX = Math.max(maxX, Y[i * 2]); minY = Math.min(minY, Y[i * 2 + 1]); maxY = Math.max(maxY, Y[i * 2 + 1]); }
-  const scale = 1000 / (Math.max(maxX - minX, maxY - minY) || 1);
+  const E = lowRank(N, M, rowStart, colIdx, val, k, 25, rand);     // one row per song, length 1 (a zero row for a song never played with another)
+  onProgress(0.15); await yieldNow();
+  // the skeleton: the most played songs that were played with others
+  const core = []; for (let i = 0; i < N && core.length < coreSize; i++) if (counts[i] > 0) core.push(i);
+  if (core.length < 40) return { songs: [], reason: "few" };
+  const Ec = new Float64Array(core.length * k); core.forEach((i, c) => { for (let j = 0; j < k; j++) Ec[c * k + j] = E[i * k + j]; });
+  const Yc = await tsne(Ec, core.length, k, rand, p => onProgress(0.15 + 0.65 * (p - 0.2) / 0.8));
+  const X = new Float64Array(N), Yv = new Float64Array(N), placed = new Uint8Array(N);
+  core.forEach((i, c) => { X[i] = Yc[c * 2]; Yv[i] = Yc[c * 2 + 1]; placed[i] = 1; });
+  // every other song goes to the weighted middle of the six skeleton songs it is closest to in the embedding
+  const NB = 6, jitter = Math.sqrt((Math.max(...Yc.filter((_, a) => a % 2 === 0)) - Math.min(...Yc.filter((_, a) => a % 2 === 0))) ** 2) * 0.004;
+  let done = 0;
+  for (let i = 0; i < N; i++) {
+    if (placed[i] || counts[i] === 0) continue;
+    const best = []; // [similarity, core index], kept to NB entries
+    for (let c = 0; c < core.length; c++) {
+      let dot = 0; for (let j = 0; j < k; j++) dot += E[i * k + j] * Ec[c * k + j];
+      if (best.length < NB || dot > best[best.length - 1][0]) { best.push([dot, c]); best.sort((a, b) => b[0] - a[0]); if (best.length > NB) best.pop(); }
+    }
+    let sx = 0, sy = 0, sw = 0;
+    for (const [dot, c] of best) { const w = 1 / (Math.sqrt(Math.max(0, 2 - 2 * dot)) + 1e-3); sx += Yc[c * 2] * w; sy += Yc[c * 2 + 1] * w; sw += w; }
+    X[i] = sx / sw + normal(rand) * jitter; Yv[i] = sy / sw + normal(rand) * jitter; placed[i] = 1;
+    if (++done % 1500 === 0) { onProgress(0.8 + 0.17 * Math.min(1, done / Math.max(1, N - core.length))); await yieldNow(); }
+  }
+  // songs never played with another song carry no listening signal: put them beside their artist's other songs, or somewhere inside the map
+  const byArtist = new Map();
+  for (let i = 0; i < N; i++) if (placed[i]) { const a = top[i].artist; const g = byArtist.get(a) || [0, 0, 0]; g[0] += X[i]; g[1] += Yv[i]; g[2]++; byArtist.set(a, g); }
+  let mnX = Infinity, mxX = -Infinity, mnY = Infinity, mxY = -Infinity;
+  for (let i = 0; i < N; i++) if (placed[i]) { mnX = Math.min(mnX, X[i]); mxX = Math.max(mxX, X[i]); mnY = Math.min(mnY, Yv[i]); mxY = Math.max(mxY, Yv[i]); }
+  for (let i = 0; i < N; i++) if (!placed[i]) {
+    const g = byArtist.get(top[i].artist);
+    if (g) { X[i] = g[0] / g[2] + normal(rand) * jitter * 3; Yv[i] = g[1] / g[2] + normal(rand) * jitter * 3; }
+    else { X[i] = mnX + rand() * (mxX - mnX); Yv[i] = mnY + rand() * (mxY - mnY); }
+  }
+  for (let i = 0; i < N; i++) { mnX = Math.min(mnX, X[i]); mxX = Math.max(mxX, X[i]); mnY = Math.min(mnY, Yv[i]); mxY = Math.max(mxY, Yv[i]); }
+  const scale = 1000 / (Math.max(mxX - mnX, mxY - mnY) || 1);
   const songs = top.map((s, i) => {
-    const counts = yr[i], first = years[counts.findIndex(v => v > 0)], last = years[counts.length - 1 - [...counts].reverse().findIndex(v => v > 0)];
-    return { i, x: (Y[i * 2] - minX) * scale, y: (Y[i * 2 + 1] - minY) * scale, plays: s.plays, first, last, name: s.name, artist: s.artist, id: s.id, yr: counts };
+    const c = yr[i], first = years[c.findIndex(v => v > 0)], last = years[c.length - 1 - [...c].reverse().findIndex(v => v > 0)];
+    return { i, x: (X[i] - mnX) * scale, y: (Yv[i] - mnY) * scale, plays: s.plays, first, last, name: s.name, artist: s.artist, id: s.id, yr: c };
   });
   onProgress(1);
   return { songs, years };
