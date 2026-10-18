@@ -374,7 +374,7 @@ const landTabs = [...document.querySelectorAll("[data-tab]")];
 function showLandTab(id, scroll) {
   for (const b of landTabs) { const on = b.dataset.tab === id; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; }
   for (const p of document.querySelectorAll(".land-panel")) p.hidden = p.id !== id;
-  if (scroll) $(id).scrollIntoView({ behavior: "smooth", block: "start" });
+  if (scroll) scrollToElement($(id));
 }
 for (const b of landTabs) {
   b.addEventListener("click", () => showLandTab(b.dataset.tab, true));
@@ -415,12 +415,9 @@ if (hostFrame()) {
   fitFrame();
 }
 
-document.addEventListener("click", e => {
-  const a = e.target.closest('a[href^="#"]');
-  if (!a || a.getAttribute("href").length < 2) return;
-  const target = document.getElementById(a.getAttribute("href").slice(1));
-  if (!target) return;
-  e.preventDefault();   // a bare #link inside a frame would send the frame to the host page's address
+// Smoothly scrolls `target` to the top of the view. In the Streamlit frame the host page does the scrolling (scrollIntoView
+// would jump there), so that page's scroller is driven directly; outside a frame this is a plain smooth scroll.
+function scrollToElement(target) {
   const fe = hostFrame();
   if (!fe) { target.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
   const host = fe.ownerDocument;
@@ -428,6 +425,15 @@ document.addEventListener("click", e => {
   const base = scroller === host.scrollingElement ? 0 : scroller.getBoundingClientRect().top;
   const y = fe.getBoundingClientRect().top - base + scroller.scrollTop + target.getBoundingClientRect().top - 16;
   scroller.scrollTo({ top: Math.max(y, 0), behavior: "smooth" });
+}
+
+document.addEventListener("click", e => {
+  const a = e.target.closest('a[href^="#"]');
+  if (!a || a.getAttribute("href").length < 2) return;
+  const target = document.getElementById(a.getAttribute("href").slice(1));
+  if (!target) return;
+  e.preventDefault();   // a bare #link inside a frame would send the frame to the host page's address
+  scrollToElement(target);
 });
 
 window.__wrapped = { state, A, handleFiles, fitFrame };   // for testing in the browser console
