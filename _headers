@@ -1,0 +1,8 @@
+# Cloudflare Pages (and Netlify) read this file and send these headers with every page.
+# The Content-Security-Policy matches the meta tag in index.html, so the browser enforces it even before the page loads,
+# and adds frame-ancestors, which a meta tag cannot set. Nothing but the optional Spotify cover lookup may leave the page.
+/*
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src data: https://*.spotifycdn.com https://*.scdn.co; connect-src https://open.spotify.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=()

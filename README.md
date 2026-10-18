@@ -33,7 +33,11 @@ To put it on Streamlit Community Cloud: push this folder to a GitHub repository,
 
 ## Publish it elsewhere
 
-Upload the folder to any static host (GitHub Pages, Netlify, Cloudflare Pages). Serve `index.html`, `style.css` and `js/`. Leave `tests/` out.
+Any static host works (GitHub Pages, Netlify, Cloudflare Pages). There is no build step: serve the repository root.
+
+On **Cloudflare Pages** (or Netlify) the `_headers` file sends the Content-Security-Policy as a real HTTP header, so the browser enforces it before the page loads. The meta tag in `index.html` stays as a fallback for hosts that cannot send headers.
+
+For browser tests, `python tests/make_nocsp.py` writes `tests/index_nocsp.html`, a copy of the site without the policy. It is git-ignored so it is never published.
 
 ## Get the data
 
