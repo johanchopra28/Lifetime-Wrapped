@@ -11,7 +11,7 @@ const link = id => `https://open.spotify.com/track/${id}`;
 const state = {
   raw: null, excluded: new Map(), data: null, tab: "life", year: null, month: null,
   cmpThen: null, cmpNow: null, drift: "songs", lane: 3, breakDays: 3, forgotMin: 40, forgotMonths: 12,
-  missedCap: 15, missedShown: 50, artist: null, calYear: null, card: "all", sel: "", minDays: 3, covers: false,
+  missedCap: 15, missedShown: 50, artist: null, calYear: null, card: "all", sel: "", minDays: 3, covers: true,
 };
 let memoCache = new Map();
 const memo = (name, fn, ...args) => {
@@ -24,6 +24,7 @@ const lists = new Map();   // downloadable lists, by id
 // ------------------------------------------------------------------ loading
 async function handleFiles(files, sample = false) {
   state.sample = sample;
+  state.covers = !sample;   // the sample's songs are made up, so there is nothing to look up for them
   const status = $("status");
   status.hidden = false;
   status.classList.remove("error");
@@ -268,8 +269,9 @@ function cardHtml({ label, sub, minutes, plays, songs, artists, ts, ta, album, b
   </div></div>`;
 }
 
-// ------------------------------------------------------------------ album covers (opt-in)
-// Only when the visitor switches covers on: ask Spotify's public oEmbed service for each song on screen, then show the image.
+// ------------------------------------------------------------------ album covers
+// For each song on screen, ask Spotify's public oEmbed service for its cover, then show the image. Only the song's Spotify ID is sent.
+// Skipped for the made-up sample history.
 const coverCache = new Map();       // track id -> image url, or "" when Spotify has none
 const coverQueue = [];
 let coverWorkers = 0;
@@ -344,7 +346,6 @@ document.addEventListener("click", async e => {
 document.addEventListener("change", e => {
   const t = e.target;
   if (t.id === "fileInput") { handleFiles(t.files); return; }
-  if (t.id === "coversToggle") { state.covers = t.checked; renderPanel(); return; }
   if (t.id === "excludeInput") {
     const v = t.value;
     const hit = A.songs(state.data.real).slice(0, 4000).find(s => s.name + " - " + s.artist === v);

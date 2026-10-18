@@ -111,12 +111,9 @@ small { font-size: .8em; }
 .personality { margin: 10px 0; padding: 14px 16px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
 .personality p { margin: 8px 0 0; font-size: .88rem; }
 .opts { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
-.opts > details, .opts > .toggle { flex: 1 1 320px; }
+.opts > details { flex: 1 1 320px; }
 details { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 16px; margin: 8px 0; }
 summary { cursor: pointer; font-weight: 600; }
-.toggle { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 16px; margin: 8px 0; cursor: pointer; }
-.toggle input { accent-color: var(--accent); margin-right: 8px; }
-.toggle small { display: block; color: var(--muted); margin-top: 2px; }
 input[list], select { font: inherit; color: inherit; background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; max-width: 100%; }
 input[list] { width: min(440px, 100%); }
 .chips { margin-top: 8px; }
