@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The page may not make any network request of its own: connect-src, img-src and every other fetch directive are closed. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<title>Lifetime Wrapped</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <section id="landing">
+    <h1>Lifetime Wrapped</h1>
+    <p class="lead">Drop in the listening history Spotify gave you and see every year of it: your top songs, the song that ruled each month, when you listen, what you keep coming back to, and more.</p>
+
+    <label id="drop" class="drop">
+      <input type="file" id="fileInput" accept=".zip,.json" multiple>
+      <b>Choose your Spotify zip</b> or drop it here
+      <span class="muted">The file named like <i>my_spotify_data.zip</i>. You can also pick the JSON files inside it.</span>
+    </label>
+    <p id="status" class="status" hidden></p>
+
+    <div class="privacy">
+      <h2>Your data stays on your computer</h2>
+      <ul>
+        <li>The file is read by this page, in your browser. It is <b>never uploaded</b>. There is no server behind this page to receive it.</li>
+        <li>Nothing is stored: no database, no cookies, no analytics. Close the tab and it is gone.</li>
+        <li>The page is blocked from making any network connection by its own security policy, so it could not send your data out even by mistake.</li>
+        <li>Only song, artist, album and play length are read. IP address, country and device in your file are ignored.</li>
+        <li>You can check: open your browser's developer tools, look at the Network tab while you load a file, and watch nothing leave. The code is a few plain files with no outside libraries.</li>
+      </ul>
+    </div>
+
+    <div class="howto">
+      <h2>Where do I get the file?</h2>
+      <ol>
+        <li>Sign in at spotify.com and open <b>Account, then Privacy settings</b>.</li>
+        <li>Under <b>Download your data</b>, tick <b>Extended streaming history</b> and request it.</li>
+        <li>Spotify emails you a link, which can take days to arrive. Download the zip and drop it above.</li>
+      </ol>
+      <p class="muted">The shorter "Account data" download only covers the last year, so it will show far less.</p>
+    </div>
+  </section>
+
+  <section id="app" hidden>
+    <header>
+      <h1>Lifetime wrapped</h1>
+      <p id="range" class="muted"></p>
+      <div id="metrics" class="metrics"></div>
+      <div id="personality" class="personality"></div>
+      <details id="exclusions"></details>
+    </header>
+    <nav id="tabs" class="tabs" role="tablist"></nav>
+    <div id="panel"></div>
+    <p class="foot muted">Everything on this page was worked out in your browser. Nothing was uploaded or saved. <a href="" onclick="location.reload();return false">Start over with another file</a></p>
+  </section>
+</main>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
