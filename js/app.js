@@ -1,7 +1,7 @@
 import * as A from "./analysis.js";
 import { loadFiles } from "./load.js";
 import { sampleHistory } from "./sample.js";
-import { esc, bars, hbars, stacked, heatmap, calendar } from "./charts.js";
+import { esc, bars, hbars, stacked, heatmap, calendar, streamChart, streamTipHtml } from "./charts.js";
 
 const $ = id => document.getElementById(id);
 const n0 = v => Math.round(v).toLocaleString();
@@ -107,9 +107,12 @@ function tabLife() {
   const yt = memo("yt", () => A.byYear(real).map(y => ({ year: y.year, top: A.topArtists(real, 1, y.year)[0] })));
   const brk = memo("brk" + state.breakDays, () => A.breaks(real, state.breakDays));
   const sl = A.byYear(real);
-  const top8 = A.topArtists(real, 8).map(a => a.artist);
-  const eras = stacked(sl.map(y => String(y.year)), top8.map((a, i) => ({ name: a, color: PALETTE[i % PALETTE.length],
-    values: sl.map(y => real.reduce((c, r) => c + (r.y === y.year && r.artist === a ? 1 : 0), 0)) })), { height: 300 });
+  const eras = memo("eras", () => {
+    const top8 = A.topArtists(real, 8).map(a => a.artist);
+    const at = new Map(top8.map((a, i) => [a, i])), counts = top8.map(() => new Map());
+    for (const r of real) { const k = at.get(r.artist); if (k !== undefined) counts[k].set(r.y, (counts[k].get(r.y) || 0) + 1); }
+    return streamChart(sl.map(y => String(y.year)), top8.map((a, i) => ({ name: a, color: PALETTE[i % PALETTE.length], values: sl.map(y => counts[i].get(y.year) || 0) })), { title: "Real plays" });
+  });
   return `<h2>The songs of your life</h2>${songTable("top20", "Top songs", top, [{ h: "Real plays", f: s => n0(s.plays) }, { h: "Hours", f: s => s.hours.toFixed(1) }])}
   <div class="two"><div><h2>Top artists</h2>${hbars(ta.map(a => ({ label: a.artist, value: a.plays, tip: `${n0(a.hours)} hours, ${n0(a.songs)} songs` })))}</div>
   <div><h2>Artist eras</h2>${eras}<p class="muted">Number one artist each year: ${yt.map(y => `${y.year} ${esc(y.top.artist)}`).join(", ")}</p></div></div>
@@ -121,7 +124,7 @@ function tabLife() {
   ${brk.length ? table(["From", "To", "Days silent", "Last song before", "First song after"], brk.slice(0, 50).map(b => [A.dayText(b.start), A.dayText(b.end), String(b.days), `${esc(b.lastSong)} (${esc(b.lastArtist)})`, `${esc(b.firstSong)} (${esc(b.firstArtist)})`])) : ""}`;
 }
 
-const PALETTE = ["#1db954", "#e8a33d", "#5b9bd5", "#e33a3a", "#b07cd8", "#4cc9c0", "#d96ba0", "#8a919c"];
+const PALETTE = ["#34d399", "#fbbf6a", "#60a5fa", "#fb7185", "#a78bfa", "#2dd4bf", "#f472b6", "#94a3b8"];
 
 function tabYear() {
   const { real } = state.data;
@@ -434,6 +437,31 @@ document.addEventListener("click", e => {
   if (!target) return;
   e.preventDefault();   // a bare #link inside a frame would send the frame to the host page's address
   scrollToElement(target);
+});
+
+// Artist eras chart: click a legend name to isolate that artist; hover a year for the order that year.
+let stream = { focus: null };
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-sfocus]");
+  if (!b) return;
+  const f = +b.dataset.sfocus, root = b.closest("[data-stream]");
+  stream.focus = stream.focus === f ? null : f;
+  root.querySelectorAll("[data-slayer]").forEach(p => p.setAttribute("fill-opacity", stream.focus === null || +p.dataset.slayer === stream.focus ? 1 : .18));
+  root.querySelectorAll("[data-sedge]").forEach(p => p.setAttribute("stroke-opacity", stream.focus === null || +p.dataset.sedge === stream.focus ? .95 : .15));
+  root.querySelectorAll(".sleg-b").forEach(c => { const on = stream.focus === null || +c.dataset.sfocus === stream.focus; c.classList.toggle("dim", !on); c.setAttribute("aria-pressed", String(+c.dataset.sfocus === stream.focus)); });
+});
+function streamTip() { let t = $("stip"); if (!t) { t = document.createElement("div"); t.id = "stip"; t.className = "stip"; document.body.appendChild(t); } return t; }
+document.addEventListener("mousemove", e => {
+  const yc = e.target.dataset && e.target.dataset.syc;
+  const t = document.getElementById("stip");
+  document.querySelectorAll(".stream .sx").forEach(l => { l.style.display = "none"; });
+  if (yc === undefined) { if (t) t.style.opacity = 0; return; }
+  const svg = e.target.closest("svg"), r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+  const col = e.target, cx = (+col.getAttribute("x") + +col.getAttribute("width") / 2);
+  const line = svg.querySelector(".sx"); line.setAttribute("x1", cx); line.setAttribute("x2", cx); line.style.display = "";
+  const tip = streamTip(); tip.innerHTML = streamTipHtml(+yc); tip.style.opacity = 1;
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + "px";
+  tip.style.top = Math.max(8, Math.min(e.clientY - tip.offsetHeight - 10, innerHeight - tip.offsetHeight - 8)) + "px";
 });
 
 window.__wrapped = { state, A, handleFiles, fitFrame };   // for testing in the browser console

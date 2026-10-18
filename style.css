@@ -191,3 +191,16 @@ button { font: inherit; }
 .who { display: inline-block; padding: 2px 11px; border-radius: 999px; font-weight: 600; text-decoration: none; color: var(--fg);
   background: var(--card); border: 1px solid var(--line); transition: border-color .12s; }
 .who:hover { border-color: var(--accent); color: var(--accent-ink); }
+
+/* artist eras (stream chart) */
+.stream .sx { stroke: var(--fg); stroke-dasharray: 2 3; }
+.stream path { transition: fill-opacity .3s ease, stroke-opacity .3s ease; }
+.sleg { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 10px 0 2px; }
+.sleg-b { font: inherit; font-size: .82rem; display: inline-flex; align-items: center; gap: 7px; background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 999px; padding: 3px 11px 3px 8px; cursor: pointer; transition: opacity .3s ease, border-color .12s; }
+.sleg-b i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.sleg-b:hover, .sleg-b[aria-pressed="true"] { border-color: var(--fg); }
+.sleg-b.dim { opacity: .4; }
+.shint { font-size: .82rem; margin: 6px 2px 0; }
+.stip { position: fixed; z-index: 20; pointer-events: none; background: var(--card); color: var(--fg); border: 1px solid var(--fg); border-radius: 8px; padding: 6px 9px; font-size: .82rem; max-width: 260px; opacity: 0; transition: opacity .08s; }
+.stip b { font-weight: 700; } .stip .m { color: var(--muted); font-family: ui-monospace, Menlo, monospace; font-size: .76rem; }
+@media (prefers-reduced-motion: reduce) { .stream path, .sleg-b, .stip { transition: none; } }
