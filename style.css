@@ -72,6 +72,21 @@ small { font-size: .8em; }
 .privacy { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--card)), var(--card)); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); border-radius: 20px; padding: 8px 26px 22px; }
 .privacy h2 { justify-content: flex-start; } .privacy h2::before { display: block; }
 .privacy ul { padding-left: 1.2em; } .privacy li { margin: 8px 0; }
+/* privacy cards and the check-it-yourself button */
+.pcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.pcard { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+.pcard .pic { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; font-size: 1.25rem; margin-bottom: 10px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.pcard b { display: block; margin-bottom: 4px; } .pcard p { margin: 0; color: var(--muted); font-size: .9rem; }
+.pnote { text-align: center; max-width: 44em; margin: 16px auto 0; font-size: .9rem; }
+.verify-wrap { text-align: center; margin-top: 18px; }
+.verify-btn { font: inherit; font-weight: 600; min-height: 48px; padding: 0 24px; border-radius: 999px; cursor: pointer; color: var(--fg);
+  border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); transition: background .15s, transform .15s; }
+.verify-btn:hover { background: color-mix(in srgb, var(--accent) 24%, transparent); transform: translateY(-1px); }
+.verify-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.verify { max-width: 44em; margin: 12px auto 0; padding: 14px 18px; border-radius: 12px; text-align: left; color: var(--muted); font-size: .92rem;
+  background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); }
+
 .landfoot { text-align: center; margin-top: 50px; color: var(--muted); font-size: .88rem; }
 
 /* ------------------------------------------------------------ app header */

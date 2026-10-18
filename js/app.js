@@ -347,4 +347,11 @@ for (const ev of ["dragenter", "dragover"]) $("drop").addEventListener(ev, e => 
 for (const ev of ["dragleave", "drop"]) $("drop").addEventListener(ev, e => { e.preventDefault(); $("drop").classList.remove("over"); });
 $("drop").addEventListener("drop", e => handleFiles(e.dataTransfer.files));
 
+// "Do not take our word for it" button on the landing page: shows or hides the explanation.
+$("verifyBtn").addEventListener("click", () => {
+  const open = $("verifyBtn").getAttribute("aria-expanded") === "true";
+  $("verifyBtn").setAttribute("aria-expanded", String(!open));
+  $("verify").hidden = open;
+});
+
 window.__wrapped = { state, A, handleFiles };   // for testing in the browser console
