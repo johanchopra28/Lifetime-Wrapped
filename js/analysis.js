@@ -88,6 +88,19 @@ export function topArtists(real, n = 20, year, month) {
 }
 
 // ------------------------------------------------------------------ totals
+/** The albums played most (by real plays), optionally for one year. Plays with no album name are ignored. */
+export function topAlbums(real, n = 1, year) {
+  const m = new Map();
+  for (const r of slice(real, year)) {
+    if (!r.album) continue;
+    const k = r.album + "|" + r.artist;
+    let a = m.get(k);
+    if (!a) { a = { album: r.album, artist: r.artist, plays: 0 }; m.set(k, a); }
+    a.plays++;
+  }
+  return [...m.values()].sort((a, b) => b.plays - a.plays).slice(0, n);
+}
+
 export function overview(real, all) {
   const days = new Set(real.map(r => r.dn));
   const keys = new Set(), artists = new Set();
