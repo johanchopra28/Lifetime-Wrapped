@@ -241,19 +241,31 @@ function tabCard() {
   let body;
   if (state.card === "all") {
     const ov = memo("ov", () => A.overview(real, state.data.all));
-    const ts = A.topSongs(real, 5), ta = A.topArtists(real, 5);
-    body = cardHtml("Lifetime", `${A.dayText(ov.firstDay)} to ${A.dayText(ov.lastDay)}`, ov.hours * 60, ov.realPlays, ov.songs, ov.artists, ts, ta);
+    const ts = A.topSongs(real, 5), ta = A.topArtists(real, 5), best = A.busiestDays(real, 1)[0];
+    body = cardHtml({ label: "Lifetime", sub: `${A.dayText(ov.firstDay)} to ${A.dayText(ov.lastDay)}`, minutes: ov.hours * 60, plays: ov.realPlays,
+      songs: ov.songs, artists: ov.artists, ts, ta, album: A.topAlbums(real, 1)[0], best });
   } else {
     const y = +state.card, c = A.yearCard(real, y);
-    body = cardHtml(String(y), `Best month: ${A.MONTHS[c.bestMonth - 1]}`, c.hours * 60, c.plays, c.songs, c.artists, c.topSongs, c.topArtists);
+    body = cardHtml({ label: String(y), sub: `${n0(c.newSongs)} songs new to you`, minutes: c.hours * 60, plays: c.plays,
+      songs: c.songs, artists: c.artists, ts: c.topSongs, ta: c.topArtists, album: A.topAlbums(real, 1, y)[0], best: c.busiest });
   }
   return `<h2>Which wrapped? ${sel}</h2>${body}<p class="muted">Screenshot the card to share it. Nothing is uploaded anywhere.</p>`;
 }
-function cardHtml(label, sub, minutes, plays, songs, artists, ts, ta) {
-  const collage = state.covers ? `<div class="collage">${ts.map(s => `<img data-id="${esc(s.id)}" alt="" ${coverCache.get(s.id) ? `src="${esc(coverCache.get(s.id))}"` : ""}>`).join("")}</div>` : "";
-  return `<div class="wcard"><h3>${esc(label)}</h3><p class="sub">${esc(sub)}</p>${collage}
+function cardHtml({ label, sub, minutes, plays, songs, artists, ts, ta, album, best }) {
+  const top = ts[0];
+  // The cover only appears when the visitor has switched album covers on; otherwise a plain tile keeps the layout.
+  const cover = state.covers
+    ? `<img class="cover" data-id="${esc(top.id)}" alt="" ${coverCache.get(top.id) ? `src="${esc(coverCache.get(top.id))}"` : ""}>`
+    : `<div class="cover-ph" aria-hidden="true">&#9835;</div>`;
+  const albumHtml = album ? `<div class="k">Top album</div><div class="v">${esc(album.album)}</div>` : "";
+  const bestHtml = best ? `<div class="k">Biggest day</div><div class="v">${n0(best.plays)} plays, ${A.dayText(best.dn)}</div>` : "";
+  return `<div class="wcard"><h3>${esc(label)}</h3><p class="sub">${esc(sub)}</p>
   <div class="big"><div><b>${n0(minutes)}</b><span>minutes listened</span></div><div><b>${n0(plays)}</b><span>real plays</span></div><div><b>${n0(songs)}</b><span>different songs</span></div><div><b>${n0(artists)}</b><span>different artists</span></div></div>
-  <div class="two"><div><h4>Top songs</h4><ol>${ts.map(s => `<li>${esc(s.name)} <small>${esc(s.artist)}</small></li>`).join("")}</ol></div><div><h4>Top artists</h4><ol>${ta.map(a => `<li>${esc(a.artist)} <small>${n0(a.plays)} plays</small></li>`).join("")}</ol></div></div></div>`;
+  <div class="cgrid">
+    <div>${cover}<div class="top1">#1 ${esc(top.name)}</div><div>${esc(top.artist)}, ${n0(top.plays)} plays</div></div>
+    <div><h4>Top songs</h4><ol>${ts.map(x => `<li>${esc(x.name)} <small>${esc(x.artist)}</small></li>`).join("")}</ol></div>
+    <div><h4>Top artists</h4><ol>${ta.map(x => `<li>${esc(x.artist)} <small>${n0(x.plays)} plays</small></li>`).join("")}</ol>${albumHtml}${bestHtml}</div>
+  </div></div>`;
 }
 
 // ------------------------------------------------------------------ album covers (opt-in)
