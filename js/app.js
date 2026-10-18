@@ -93,6 +93,7 @@ function renderPanel() {
   const fn = { life: tabLife, year: tabYear, cmp: tabCompare, when: tabWhen, habits: tabHabits, forgot: tabForgot, missed: tabMissed, artist: tabArtist, card: tabCard }[state.tab];
   $("panel").innerHTML = fn();
   hydrateCovers();
+  fitFrame();
 }
 
 function tabLife() {
@@ -362,4 +363,38 @@ $("verifyBtn").addEventListener("click", () => {
   $("verify").hidden = open;
 });
 
-window.__wrapped = { state, A, handleFiles };   // for testing in the browser console
+// When the page is shown inside a same-origin frame (the Streamlit version), size the frame to its content so the host page does
+// all the scrolling, and make in-page links (#how, #privacy, #features) scroll that host page. Outside a frame nothing changes.
+function hostFrame() {
+  try { return window.frameElement && window.frameElement.ownerDocument ? window.frameElement : null; } catch { return null; }
+}
+function fitFrame() {
+  const fe = hostFrame();
+  if (!fe) return;
+  const h = Math.ceil(document.body.getBoundingClientRect().height) + "px";
+  fe.style.height = h;
+  const box = fe.closest('[data-testid="stElementContainer"]');   // Streamlit fixes the height of the box around the frame too
+  if (box) box.style.height = h;
+}
+if (hostFrame()) {
+  new ResizeObserver(fitFrame).observe(document.body);
+  document.addEventListener("load", fitFrame, true);   // cover images arriving change the height
+  fitFrame();
+}
+
+document.addEventListener("click", e => {
+  const a = e.target.closest('a[href^="#"]');
+  if (!a || a.getAttribute("href").length < 2) return;
+  const target = document.getElementById(a.getAttribute("href").slice(1));
+  if (!target) return;
+  e.preventDefault();   // a bare #link inside a frame would send the frame to the host page's address
+  const fe = hostFrame();
+  if (!fe) { target.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  const host = fe.ownerDocument;
+  const scroller = fe.closest('[data-testid="stMain"]') || host.scrollingElement;
+  const base = scroller === host.scrollingElement ? 0 : scroller.getBoundingClientRect().top;
+  const y = fe.getBoundingClientRect().top - base + scroller.scrollTop + target.getBoundingClientRect().top - 16;
+  scroller.scrollTo({ top: Math.max(y, 0), behavior: "smooth" });
+});
+
+window.__wrapped = { state, A, handleFiles, fitFrame };   // for testing in the browser console
