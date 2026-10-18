@@ -19,6 +19,7 @@ st.markdown("""<style>
 .block-container {padding: 0 !important; max-width: 100% !important;}
 header[data-testid="stHeader"], footer, #MainMenu, [data-testid="stSidebar"] {display: none !important;}
 iframe {border: 0; display: block;}
+[data-testid="stElementContainer"]:has(> iframe) {height: auto !important; flex: 0 0 auto !important;}   /* the page inside sizes its own frame; keep the box around it in step (Streamlit fixes both its height and its flex size) */
 .creds {display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; padding: 18px 12px 28px; font: 14px system-ui, sans-serif; color: #8995a3;}
 .creds a {display: inline-flex; gap: 7px; align-items: center; padding: 5px 13px 5px 10px; border-radius: 999px; background: #24292f; color: #fff !important;
   text-decoration: none !important; font-weight: 600; border: 1px solid #3b434c; transition: border-color .12s, transform .12s;}
