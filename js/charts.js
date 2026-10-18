@@ -136,21 +136,20 @@ export function streamChart(labels, series, { title = "Real plays" } = {}) {
   const max = (fr <= 1 ? 1 : fr <= 2 ? 2 : fr <= 5 ? 5 : 10) * p;
   const x = i => pl + i * (W - pl - pr) / (n - 1), y = v => H - pb - (H - pb - pt) * v / max;
   const base = labels.map(() => 0), edges = [];
-  const defs = series.map((a, k) => `<linearGradient id="sg${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a.color}" stop-opacity=".82"/><stop offset="1" stop-color="${a.color}" stop-opacity=".3"/></linearGradient>`).join("");
   const layers = series.map((a, k) => {
     const lo = base.slice(), hi = labels.map((_, i) => base[i] + a.values[i]);
     hi.forEach((v, i) => { base[i] = v; });
     const up = curvePath(hi.map((v, i) => [x(i), y(v)]));
     const dn = curvePath(lo.map((v, i) => [x(i), y(v)]).reverse()).replace(/^M/, "L");
-    edges.push(`<path data-sedge="${k}" d="${up}" fill="none" stroke="${a.color}" stroke-width="1.6" stroke-linecap="round" stroke-opacity=".95"/>`);
-    return `<path data-slayer="${k}" d="${up}${dn}Z" fill="url(#sg${k})"/>`;
+    edges.push(`<path data-sedge="${k}" d="${up}" fill="none" stroke="${a.color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`);
+    return `<path data-slayer="${k}" d="${up}${dn}Z" fill="${a.color}" fill-opacity=".5"/>`;
   }).join("");
   const ticks = [0, .25, .5, .75, 1].map(f => `<line class="grid" x1="${pl}" x2="${W - pr}" y1="${y(max * f)}" y2="${y(max * f)}"/><text class="num" x="${pl - 8}" y="${y(max * f) + 4}" text-anchor="end">${Math.round(max * f).toLocaleString()}</text>`).join("");
   const xs = labels.map((l, i) => `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${esc(l)}</text>`).join("");
   const cw = (W - pl - pr) / (n - 1);
   const cols = labels.map((_, i) => `<rect data-syc="${i}" x="${x(i) - cw / 2}" y="${pt}" width="${cw}" height="${H - pb - pt}" fill="transparent"/>`).join("");
   const legend = series.map((a, k) => `<button type="button" class="sleg-b" data-sfocus="${k}" aria-pressed="false"><i style="background:${a.color}"></i>${esc(a.name)}</button>`).join("");
-  return `<div class="stream" data-stream><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Stacked area chart of plays per year"><defs>${defs}</defs>${ticks}${layers}${edges.join("")}
+  return `<div class="stream" data-stream><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Stacked area chart of plays per year">${ticks}${layers}${edges.join("")}
     <line class="sx" y1="${pt}" y2="${H - pb}" style="display:none"/><text transform="translate(11 ${(H - pb + pt) / 2}) rotate(-90)" text-anchor="middle">${esc(title)}</text>${xs}${cols}</svg>
     <div class="sleg">${legend}</div><p class="muted shint">Hover a year for the order that year. Click a name to isolate that artist.</p></div>`;
 }

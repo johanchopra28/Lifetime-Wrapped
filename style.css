@@ -204,3 +204,11 @@ button { font: inherit; }
 .stip { position: fixed; z-index: 20; pointer-events: none; background: var(--card); color: var(--fg); border: 1px solid var(--fg); border-radius: 8px; padding: 6px 9px; font-size: .82rem; max-width: 260px; opacity: 0; transition: opacity .08s; }
 .stip b { font-weight: 700; } .stip .m { color: var(--muted); font-family: ui-monospace, Menlo, monospace; font-size: .76rem; }
 @media (prefers-reduced-motion: reduce) { .stream path, .sleg-b, .stip { transition: none; } }
+/* the chart is a dark panel in both themes, so its colours read the same everywhere */
+.stream { background: #0e1117; border: 1px solid #31333f; border-radius: 14px; padding: 14px 12px 10px; color: #e6eaf1; }
+.stream .chart text { fill: #e6eaf1; }
+.stream .chart .grid { stroke: #31333f; stroke-dasharray: none; }
+.stream .sx { stroke: #e6eaf1; }
+.stream .sleg-b { color: #e6eaf1; border-color: #31333f; }
+.stream .sleg-b:hover, .stream .sleg-b[aria-pressed="true"] { border-color: #e6eaf1; }
+.stream .shint { color: #98a0ab; }
