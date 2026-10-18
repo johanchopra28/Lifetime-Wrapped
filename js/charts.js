@@ -16,7 +16,7 @@ export function bars(data, { height = 260, fmt = v => v.toLocaleString(), select
   const W = 720, padL = 46, padB = 28, padT = 10, H = height;
   const max = niceMax(Math.max(...data.map(d => d.value), 0));
   const bw = (W - padL) / data.length;
-  let out = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">`;
+  let out = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4ae28a"/><stop offset="1" stop-color="#1ed760" stop-opacity=".55"/></linearGradient></defs>`;
   for (let t = 0; t <= 4; t++) {
     const y = padT + (H - padT - padB) * (1 - t / 4);
     out += `<line class="grid" x1="${padL}" x2="${W}" y1="${y}" y2="${y}"/><text class="axis" x="${padL - 6}" y="${y + 4}" text-anchor="end">${fmt(max * t / 4)}</text>`;

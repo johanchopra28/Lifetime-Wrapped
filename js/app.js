@@ -10,7 +10,7 @@ const link = id => `https://open.spotify.com/track/${id}`;
 const state = {
   raw: null, excluded: new Map(), data: null, tab: "life", year: null, month: null,
   cmpThen: null, cmpNow: null, drift: "songs", lane: 3, breakDays: 3, forgotMin: 40, forgotMonths: 12,
-  missedCap: 15, missedShown: 50, artist: null, calYear: null, card: "all", sel: "", minDays: 3,
+  missedCap: 15, missedShown: 50, artist: null, calYear: null, card: "all", sel: "", minDays: 3, covers: false,
 };
 let memoCache = new Map();
 const memo = (name, fn, ...args) => {
@@ -64,9 +64,9 @@ const songCell = s => `<a href="${link(s.id)}" target="_blank" rel="noopener nor
 /** A ranked song table with buttons to copy the Spotify links or download a CSV. */
 function songTable(id, title, list, extra = []) {
   lists.set(id, { title, list });
-  const rows = list.map((s, i) => [String(i + 1), songCell(s), esc(s.artist), ...extra.map(e => e.f(s))]);
+  const rows = list.map((s, i) => [String(i + 1), ...(state.covers ? [coverImg(s.id)] : []), songCell(s), esc(s.artist), ...extra.map(e => e.f(s))]);
   const buttons = list.length ? `<div class="actions"><button data-act="copy" data-id="${id}">Copy Spotify links</button><button data-act="csv" data-id="${id}">Download CSV</button></div>` : "";
-  return table(["#", "Song", "Artist", ...extra.map(e => e.h)], rows) + buttons;
+  return table(["#", ...(state.covers ? [""] : []), "Song", "Artist", ...extra.map(e => e.h)], rows, state.covers ? "covers" : "") + buttons;
 }
 const metric = (label, value, help = "") => `<div class="metric" ${help ? `title="${esc(help)}"` : ""}><span>${esc(label)}</span><b>${value}</b></div>`;
 
@@ -90,6 +90,7 @@ function render() {
 function renderPanel() {
   const fn = { life: tabLife, year: tabYear, cmp: tabCompare, when: tabWhen, habits: tabHabits, forgot: tabForgot, missed: tabMissed, artist: tabArtist, card: tabCard }[state.tab];
   $("panel").innerHTML = fn();
+  hydrateCovers();
 }
 
 function tabLife() {
@@ -247,9 +248,42 @@ function tabCard() {
   return `<h2>Which wrapped? ${sel}</h2>${body}<p class="muted">Screenshot the card to share it. Nothing is uploaded anywhere.</p>`;
 }
 function cardHtml(label, sub, minutes, plays, songs, artists, ts, ta) {
-  return `<div class="wcard"><h3>${esc(label)}</h3><p class="sub">${esc(sub)}</p>
+  const collage = state.covers ? `<div class="collage">${ts.map(s => `<img data-id="${esc(s.id)}" alt="" ${coverCache.get(s.id) ? `src="${esc(coverCache.get(s.id))}"` : ""}>`).join("")}</div>` : "";
+  return `<div class="wcard"><h3>${esc(label)}</h3><p class="sub">${esc(sub)}</p>${collage}
   <div class="big"><div><b>${n0(minutes)}</b><span>minutes listened</span></div><div><b>${n0(plays)}</b><span>real plays</span></div><div><b>${n0(songs)}</b><span>different songs</span></div><div><b>${n0(artists)}</b><span>different artists</span></div></div>
   <div class="two"><div><h4>Top songs</h4><ol>${ts.map(s => `<li>${esc(s.name)} <small>${esc(s.artist)}</small></li>`).join("")}</ol></div><div><h4>Top artists</h4><ol>${ta.map(a => `<li>${esc(a.artist)} <small>${n0(a.plays)} plays</small></li>`).join("")}</ol></div></div></div>`;
+}
+
+// ------------------------------------------------------------------ album covers (opt-in)
+// Only when the visitor switches covers on: ask Spotify's public oEmbed service for each song on screen, then show the image.
+const coverCache = new Map();       // track id -> image url, or "" when Spotify has none
+const coverQueue = [];
+let coverWorkers = 0;
+const coverImg = id => `<img data-id="${esc(id)}" alt="" width="40" height="40" ${coverCache.get(id) ? `src="${esc(coverCache.get(id))}"` : ""}>`;
+const safeImage = u => { try { const h = new URL(u).hostname; return h.endsWith(".spotifycdn.com") || h.endsWith(".scdn.co"); } catch { return false; } };
+
+function hydrateCovers() {
+  if (!state.covers) return;
+  for (const img of $("panel").querySelectorAll("img[data-id]")) {
+    const id = img.dataset.id;
+    if (coverCache.has(id)) { if (coverCache.get(id) && !img.src) img.src = coverCache.get(id); continue; }
+    if (!coverQueue.includes(id)) coverQueue.push(id);
+  }
+  while (coverWorkers < 4 && coverQueue.length) { coverWorkers++; coverWorker(); }
+}
+
+async function coverWorker() {
+  while (coverQueue.length && state.covers) {
+    const id = coverQueue.shift();
+    let url = "";
+    try {
+      const r = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent("https://open.spotify.com/track/" + id)}`);
+      if (r.ok) { const j = await r.json(); if (safeImage(j.thumbnail_url)) url = j.thumbnail_url; }
+    } catch { /* offline or blocked: leave it blank */ }
+    coverCache.set(id, url);
+    if (url) for (const img of document.querySelectorAll(`#panel img[data-id="${id}"]`)) img.src = url;
+  }
+  coverWorkers--;
 }
 
 // ------------------------------------------------------------------ leave songs out
@@ -296,6 +330,7 @@ document.addEventListener("click", async e => {
 document.addEventListener("change", e => {
   const t = e.target;
   if (t.id === "fileInput") { handleFiles(t.files); return; }
+  if (t.id === "coversToggle") { state.covers = t.checked; renderPanel(); return; }
   if (t.id === "excludeInput") {
     const v = t.value;
     const hit = A.songs(state.data.real).slice(0, 4000).find(s => s.name + " - " + s.artist === v);

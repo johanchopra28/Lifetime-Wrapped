@@ -3,53 +3,101 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- The page may not make any network request of its own: connect-src, img-src and every other fetch directive are closed. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
-<title>Lifetime Wrapped</title>
+<!-- Network access is closed except two things used only if the visitor turns on album covers: Spotify's public cover lookup and Spotify's image servers. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src data: https://*.spotifycdn.com https://*.scdn.co; connect-src https://open.spotify.com; base-uri 'none'; form-action 'none'">
+<title>Lifetime Wrapped: your whole Spotify history in one page</title>
+<meta name="description" content="Drop in your Spotify extended streaming history and see every year of your listening. Runs in your browser; your file is never uploaded.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <main>
   <section id="landing">
-    <h1>Lifetime Wrapped</h1>
-    <p class="lead">Drop in the listening history Spotify gave you and see every year of it: your top songs, the song that ruled each month, when you listen, what you keep coming back to, and more.</p>
+    <div class="hero">
+      <span class="eyebrow">Free &middot; private &middot; runs in your browser</span>
+      <h1>Your whole Spotify life, <em>in one page.</em></h1>
+      <p class="lead">Not just one year. Every song, artist and late night since you started, with the song that ruled each month, the years you changed taste, and the songs you quietly left behind.</p>
 
-    <label id="drop" class="drop">
-      <input type="file" id="fileInput" accept=".zip,.json" multiple>
-      <b>Choose your Spotify zip</b> or drop it here
-      <span class="muted">The file named like <i>my_spotify_data.zip</i>. You can also pick the JSON files inside it.</span>
-    </label>
-    <p id="status" class="status" hidden></p>
-
-    <div class="privacy">
-      <h2>Your data stays on your computer</h2>
-      <ul>
-        <li>The file is read by this page, in your browser. It is <b>never uploaded</b>. There is no server behind this page to receive it.</li>
-        <li>Nothing is stored: no database, no cookies, no analytics. Close the tab and it is gone.</li>
-        <li>The page is blocked from making any network connection by its own security policy, so it could not send your data out even by mistake.</li>
-        <li>Only song, artist, album and play length are read. IP address, country and device in your file are ignored.</li>
-        <li>You can check: open your browser's developer tools, look at the Network tab while you load a file, and watch nothing leave. The code is a few plain files with no outside libraries.</li>
-      </ul>
+      <label id="drop" class="drop">
+        <input type="file" id="fileInput" accept=".zip,.json" multiple>
+        <span class="up">&uarr;</span>
+        <b>Choose your Spotify zip</b>
+        <span>or drop it here</span>
+        <span class="muted">The file Spotify emailed you, named like <i>my_spotify_data.zip</i>. The JSON files inside it work too.</span>
+      </label>
+      <p id="status" class="status" hidden></p>
+      <ul class="trust"><li>Never uploaded</li><li>Nothing stored</li><li>No cookies or tracking</li><li>Open, readable code</li></ul>
     </div>
 
-    <div class="howto">
-      <h2>Where do I get the file?</h2>
-      <ol>
-        <li>Sign in at spotify.com and open <b>Account, then Privacy settings</b>.</li>
-        <li>Under <b>Download your data</b>, tick <b>Extended streaming history</b> and request it.</li>
-        <li>Spotify emails you a link, which can take days to arrive. Download the zip and drop it above.</li>
-      </ol>
-      <p class="muted">The shorter "Account data" download only covers the last year, so it will show far less.</p>
+    <div class="preview">
+      <span class="tag">Example, not real data</span>
+      <div class="mock">
+        <div class="stats">
+          <div class="stat"><b>6,214</b><span>hours listened</span></div>
+          <div class="stat"><b>97,380</b><span>real plays</span></div>
+          <div class="stat"><b>14,902</b><span>different songs</span></div>
+          <div class="stat"><b>4,310</b><span>different artists</span></div>
+        </div>
+        <div>
+          <h4>The song that ruled each month</h4>
+          <ol><li>Midnight Drive <small>March 2023 &middot; 61 plays</small></li><li>Paper Planes at Noon <small>April 2023 &middot; 48 plays</small></li><li>Slow Burn <small>May 2023 &middot; 73 plays</small></li></ol>
+        </div>
+      </div>
     </div>
+
+    <div class="section">
+      <h2>What you get</h2>
+      <p class="sub">Eight ways to look at the same history.</p>
+      <div class="features">
+        <div class="feature"><span class="ic">&#127911;</span><b>Lifetime top songs and artists</b><p>With milestones, your longest streak and your biggest day ever.</p></div>
+        <div class="feature"><span class="ic">&#128197;</span><b>Year by year, month by month</b><p>Click a year, click a month, and see the song that ruled it.</p></div>
+        <div class="feature"><span class="ic">&#9878;&#65039;</span><b>Then vs now</b><p>Compare any two years, and see when your taste changed fastest.</p></div>
+        <div class="feature"><span class="ic">&#127769;</span><b>When you listen</b><p>Hour-by-hour heatmap and a calendar of every day you played music.</p></div>
+        <div class="feature"><span class="ic">&#128257;</span><b>Your habits</b><p>What you replay, what you skip, and the songs you go back to for years.</p></div>
+        <div class="feature"><span class="ic">&#128368;&#65039;</span><b>Forgotten favourites</b><p>Songs you played again and again, then dropped.</p></div>
+        <div class="feature"><span class="ic">&#128269;</span><b>Songs you likely missed</b><p>A guess at songs from artists you love that you never gave a real chance.</p></div>
+        <div class="feature"><span class="ic">&#129489;&#8205;&#127908;</span><b>Artist deep dive</b><p>Your whole history with any artist, including the quiet spells.</p></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>How to get your file</h2>
+      <p class="sub">Spotify has to prepare it, so ask for it now.</p>
+      <div class="steps">
+        <div class="step"><b>Open privacy settings</b><p>Sign in at spotify.com, then Account, then Privacy settings.</p></div>
+        <div class="step"><b>Ask for your history</b><p>Under Download your data, tick <b>Extended streaming history</b> and request it.</p></div>
+        <div class="step"><b>Drop the zip above</b><p>Spotify emails a link (it can take days). Download the zip and drop it here.</p></div>
+      </div>
+      <p class="muted" style="text-align:center;margin-top:12px">The shorter "Account data" download only covers the last year, so it shows far less.</p>
+    </div>
+
+    <div class="section">
+      <div class="privacy">
+        <h2>Your data stays on your computer</h2>
+        <ul>
+          <li>The file is read by this page, <b>in your browser</b>. There is no server behind it to receive your history, and nothing is uploaded.</li>
+          <li>Nothing is saved: no database, no cookies, no analytics. Close the tab and it is gone.</li>
+          <li>Only the song, artist, album and play length are read. Your IP address, country and device in the file are ignored.</li>
+          <li>The page's security policy blocks all network connections except an optional album-cover lookup. That lookup is <b>off by default</b>, and when you switch it on, only the Spotify IDs of the songs on screen go to Spotify.</li>
+          <li>Check it yourself: open your browser's developer tools, watch the Network tab while you load a file, and nothing leaves. The code is a handful of plain files, with no outside libraries.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="landfoot">Not affiliated with Spotify. <a href="https://github.com/johanchopra28/Lifetime-Wrapped" target="_blank" rel="noopener noreferrer">View the source</a></p>
   </section>
 
   <section id="app" hidden>
     <header>
-      <h1>Lifetime wrapped</h1>
-      <p id="range" class="muted"></p>
+      <div class="top">
+        <h1>Your <em>lifetime</em> wrapped</h1>
+        <p id="range" class="muted"></p>
+      </div>
       <div id="metrics" class="metrics"></div>
       <div id="personality" class="personality"></div>
-      <details id="exclusions"></details>
+      <div class="opts">
+        <details id="exclusions"></details>
+        <label class="toggle"><input type="checkbox" id="coversToggle"><b>Show album covers</b>
+          <small>Off by default. Turning it on asks Spotify for the art of the songs on screen, so those songs' IDs are sent to Spotify.</small></label>
+      </div>
     </header>
     <nav id="tabs" class="tabs" role="tablist"></nav>
     <div id="panel"></div>

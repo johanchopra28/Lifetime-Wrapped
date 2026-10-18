@@ -11,7 +11,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 MODULES = ["analysis", "load", "charts", "app"]   # dependency order
-CSP = ("default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; "
+CSP = ("default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
+       "img-src data: https://*.spotifycdn.com https://*.scdn.co; connect-src https://open.spotify.com; "
        "base-uri 'none'; form-action 'none'")
 
 
