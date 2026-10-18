@@ -372,13 +372,6 @@ $("sampleBtn").addEventListener("click", () => {
   handleFiles([file], true);
 });
 
-// "Do not take our word for it" button on the landing page: shows or hides the explanation.
-$("verifyBtn").addEventListener("click", () => {
-  const open = $("verifyBtn").getAttribute("aria-expanded") === "true";
-  $("verifyBtn").setAttribute("aria-expanded", String(!open));
-  $("verify").hidden = open;
-});
-
 // When the page is shown inside a same-origin frame (the Streamlit version), size the frame to its content so the host page does
 // all the scrolling, and make in-page links (#how, #privacy, #features) scroll that host page. Outside a frame nothing changes.
 function hostFrame() {
