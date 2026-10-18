@@ -16,6 +16,11 @@ export function bars(data, { height = 260, fmt = v => v.toLocaleString(), select
   const W = 720, padL = 46, padB = 28, padT = 10, H = height;
   const max = niceMax(Math.max(...data.map(d => d.value), 0));
   const bw = (W - padL) / data.length;
+  // Label only as many bars as fit: a long series (months over several years) would otherwise print its labels on top of each other.
+  // The tooltip on every bar still carries its full label.
+  const labelW = Math.max(...data.map(d => String(d.label).length), 1) * 6.4 + 10;
+  const need = Math.max(1, Math.ceil(labelW / bw));
+  const every = [1, 2, 3, 4, 6, 12, 24].find(n => n >= need) || need;   // steps that fall on whole quarters, half years and years
   let out = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4ae28a"/><stop offset="1" stop-color="#1ed760" stop-opacity=".55"/></linearGradient></defs>`;
   for (let t = 0; t <= 4; t++) {
     const y = padT + (H - padT - padB) * (1 - t / 4);
@@ -27,7 +32,7 @@ export function bars(data, { height = 260, fmt = v => v.toLocaleString(), select
     const dim = selected != null && selected !== i ? " dim" : "";
     out += `<g class="${cls}${dim}${clickable ? " click" : ""}" data-i="${i}"><title>${esc(d.tip || `${d.label}: ${fmt(d.value)}`)}</title>`
          + `<rect x="${x}" y="${y}" width="${w}" height="${Math.max(h, 0)}" rx="2"/><rect class="hit" x="${padL + i * bw}" y="${padT}" width="${bw}" height="${H - padT - padB}"/>`
-         + `<text class="axis" x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${esc(d.label)}</text></g>`;
+         + (i % every === 0 ? `<text class="axis" x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${esc(d.label)}</text>` : "") + "</g>";
   });
   return out + "</svg>";
 }
