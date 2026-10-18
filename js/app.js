@@ -256,7 +256,7 @@ async function startGlobe() {
   if (state.tab !== "globe" || state.data !== data || !root) return;   // the visitor moved on while it was working
   const status = $("globeStatus"); if (status) status.remove();
   if (!space.songs.length) { root.innerHTML = `<p class="muted">The globe needs a longer history: at least 60 different songs played in listening sessions. Load your full Spotify export to see it.</p>`; fitFrame(); return; }
-  const open = useCovers => { mountGlobe(root, space, { useCovers, coverUrl: id => coverCache.get(id) }); fitFrame(); };
+  const open = useCovers => { mountGlobe(root, space, { useCovers, coverUrl: id => coverCache.get(id), coverTarget: Math.min(GLOBE_COVERS, space.songs.length) }); fitFrame(); };
   if (!state.covers) { open(false); return; }
   // The globe only uses songs whose cover has loaded, so it never shows a blank tile. Load the most played songs first.
   const ids = space.songs.slice(0, GLOBE_COVERS).map(s => s.id), total = ids.length;
