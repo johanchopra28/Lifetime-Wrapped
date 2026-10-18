@@ -85,13 +85,6 @@ small { font-size: .8em; }
   background: color-mix(in srgb, var(--accent) 14%, transparent); }
 .pcard b { display: block; margin-bottom: 4px; } .pcard p { margin: 0; color: var(--muted); font-size: .9rem; }
 .pnote { text-align: center; max-width: 44em; margin: 16px auto 0; font-size: .9rem; }
-.verify-wrap { text-align: center; margin-top: 18px; }
-.verify-btn { font: inherit; font-weight: 600; min-height: 48px; padding: 0 24px; border-radius: 999px; cursor: pointer; color: var(--fg);
-  border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); transition: background .15s, transform .15s; }
-.verify-btn:hover { background: color-mix(in srgb, var(--accent) 24%, transparent); transform: translateY(-1px); }
-.verify-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.verify { max-width: 44em; margin: 12px auto 0; padding: 14px 18px; border-radius: 12px; text-align: left; color: var(--muted); font-size: .92rem;
-  background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); }
 
 .landfoot { text-align: center; margin-top: 50px; color: var(--muted); font-size: .88rem; }
 
