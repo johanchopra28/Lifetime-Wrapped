@@ -99,3 +99,68 @@ export function calendar(year, counts) {
   }
   return out + "</svg>";
 }
+
+// ------------------------------------------------------------------ stream chart (stacked area with smooth, translucent layers)
+let streamData = null;
+
+/** Smooth line through the points that never overshoots between them (monotone cubic), so layers do not bulge past each other. */
+function curvePath(pts) {
+  const n = pts.length, f = v => v.toFixed(1);
+  const dx = [], sl = [];
+  for (let i = 0; i < n - 1; i++) { dx.push(pts[i + 1][0] - pts[i][0]); sl.push((pts[i + 1][1] - pts[i][1]) / dx[i]); }
+  const m = [sl[0]];
+  for (let i = 1; i < n - 1; i++) m.push(sl[i - 1] * sl[i] <= 0 ? 0 : (sl[i - 1] + sl[i]) / 2);
+  m.push(sl[n - 2]);
+  for (let i = 0; i < n - 1; i++) {
+    if (sl[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+    const a = m[i] / sl[i], b = m[i + 1] / sl[i], h = Math.hypot(a, b);
+    if (h > 3) { m[i] = 3 * a / h * sl[i]; m[i + 1] = 3 * b / h * sl[i]; }
+  }
+  let d = `M${f(pts[0][0])},${f(pts[0][1])}`;
+  for (let i = 0; i < n - 1; i++) {
+    const x1 = pts[i][0] + dx[i] / 3, x2 = pts[i + 1][0] - dx[i] / 3;
+    d += `C${f(x1)},${f(pts[i][1] + m[i] * dx[i] / 3)} ${f(x2)},${f(pts[i + 1][1] - m[i + 1] * dx[i] / 3)} ${f(pts[i + 1][0])},${f(pts[i + 1][1])}`;
+  }
+  return d;
+}
+
+/** series: [{name, color, values[]}], labels: x labels. Layers are translucent gradients with a fine line on each top edge.
+ *  Needs at least two labels. Clicks on [data-sfocus] and hovers on [data-syc] are wired in app.js. */
+export function streamChart(labels, series, { title = "Real plays" } = {}) {
+  streamData = { labels, series };
+  const n = labels.length;
+  if (n < 2) return `<p class="muted">Not enough years to draw this yet.</p>`;
+  const W = 560, H = 340, pl = 50, pr = 22, pt = 10, pb = 26;
+  const stack = labels.map((_, i) => series.reduce((s, a) => s + a.values[i], 0));
+  const top = Math.max(...stack, 1), p = Math.pow(10, Math.floor(Math.log10(top))), fr = top / p;
+  const max = (fr <= 1 ? 1 : fr <= 2 ? 2 : fr <= 5 ? 5 : 10) * p;
+  const x = i => pl + i * (W - pl - pr) / (n - 1), y = v => H - pb - (H - pb - pt) * v / max;
+  const base = labels.map(() => 0), edges = [];
+  const defs = series.map((a, k) => `<linearGradient id="sg${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a.color}" stop-opacity=".82"/><stop offset="1" stop-color="${a.color}" stop-opacity=".3"/></linearGradient>`).join("");
+  const layers = series.map((a, k) => {
+    const lo = base.slice(), hi = labels.map((_, i) => base[i] + a.values[i]);
+    hi.forEach((v, i) => { base[i] = v; });
+    const up = curvePath(hi.map((v, i) => [x(i), y(v)]));
+    const dn = curvePath(lo.map((v, i) => [x(i), y(v)]).reverse()).replace(/^M/, "L");
+    edges.push(`<path data-sedge="${k}" d="${up}" fill="none" stroke="${a.color}" stroke-width="1.6" stroke-linecap="round" stroke-opacity=".95"/>`);
+    return `<path data-slayer="${k}" d="${up}${dn}Z" fill="url(#sg${k})"/>`;
+  }).join("");
+  const ticks = [0, .25, .5, .75, 1].map(f => `<line class="grid" x1="${pl}" x2="${W - pr}" y1="${y(max * f)}" y2="${y(max * f)}"/><text class="num" x="${pl - 8}" y="${y(max * f) + 4}" text-anchor="end">${Math.round(max * f).toLocaleString()}</text>`).join("");
+  const xs = labels.map((l, i) => `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${esc(l)}</text>`).join("");
+  const cw = (W - pl - pr) / (n - 1);
+  const cols = labels.map((_, i) => `<rect data-syc="${i}" x="${x(i) - cw / 2}" y="${pt}" width="${cw}" height="${H - pb - pt}" fill="transparent"/>`).join("");
+  const legend = series.map((a, k) => `<button type="button" class="sleg-b" data-sfocus="${k}" aria-pressed="false"><i style="background:${a.color}"></i>${esc(a.name)}</button>`).join("");
+  return `<div class="stream" data-stream><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Stacked area chart of plays per year"><defs>${defs}</defs>${ticks}${layers}${edges.join("")}
+    <line class="sx" y1="${pt}" y2="${H - pb}" style="display:none"/><text transform="translate(11 ${(H - pb + pt) / 2}) rotate(-90)" text-anchor="middle">${esc(title)}</text>${xs}${cols}</svg>
+    <div class="sleg">${legend}</div><p class="muted shint">Hover a year for the order that year. Click a name to isolate that artist.</p></div>`;
+}
+
+/** Tooltip html for column i of the last stream chart. */
+export function streamTipHtml(i) {
+  if (!streamData) return "";
+  const { labels, series } = streamData;
+  const total = series.reduce((s, a) => s + a.values[i], 0);
+  const rows = series.map(a => [a.name, a.values[i], a.color]).filter(r => r[1] > 0).sort((p, q) => q[1] - p[1])
+    .map(r => `<span style="color:${r[2]}">&#9632;</span> ${esc(r[0])} <span class="m">${r[1].toLocaleString()}</span>`).join("<br>");
+  return `<b>${esc(labels[i])}</b> <span class="m">${total.toLocaleString()} plays from these artists</span><br>${rows}`;
+}
