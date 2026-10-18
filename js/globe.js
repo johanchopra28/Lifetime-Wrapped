@@ -197,7 +197,8 @@ export function mountGlobe(root, space, opts) {
   const ro = new ResizeObserver(() => { if (cells.size) { size(); draw(fx, fy); } }); ro.observe(stage);
 
   const countEl = q(".gl-count");
-  const paintCount = () => { const n = opts.useCovers ? S.filter(ready).length : S.length; countEl.textContent = opts.useCovers && n < S.length ? `${fmt(n)} of ${fmt(S.length)} songs ready, more join as their covers load` : `${fmt(S.length)} songs to spin through`; };
+  const target = Math.min(opts.coverTarget || S.length, S.length);   // the most played songs the loader fetches covers for (S is most played first)
+  const paintCount = () => { countEl.textContent = opts.useCovers ? `${fmt(S.slice(0, target).filter(ready).length)} of ${fmt(target)} most played songs` : `${fmt(S.length)} songs to spin through`; };
   paintCount(); const countTimer = setInterval(paintCount, 2000);
   random();
   active = { destroy() { cancelAnimationFrame(raf); raf = 0; clearInterval(countTimer); ro.disconnect(); document.removeEventListener("keydown", onKey); }, step, state: () => ({ pos, cells, S }) };
