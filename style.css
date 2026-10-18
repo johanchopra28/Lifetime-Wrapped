@@ -168,3 +168,9 @@ button { font: inherit; }
 .foot { margin-top: 44px; text-align: center; }
 [hidden] { display: none !important; }
 @media (max-width: 640px) { main { padding: 18px 12px 60px; } .mock { grid-template-columns: 1fr; } .hero { padding-top: 28px; } th, td { padding: 8px 8px; } }
+
+/* credits */
+.by { margin: 18px 0 0; color: var(--muted); font-size: .92rem; }
+.who { display: inline-block; padding: 2px 11px; border-radius: 999px; font-weight: 600; text-decoration: none; color: var(--fg);
+  background: var(--card); border: 1px solid var(--line); transition: border-color .12s; }
+.who:hover { border-color: var(--accent); color: var(--accent-ink); }
