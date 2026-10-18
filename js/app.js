@@ -244,7 +244,7 @@ function tabArtist() {
 }
 
 function tabGlobe() {
-  return `<h2>Song globe</h2><p class="muted">Your most played songs wrapped on a globe. Songs you played in the same sittings sit close together, and you spin it in any of eight directions. The map is worked out here in your browser from your history.</p>
+  return `<h2>Song globe</h2><p class="muted">Every song in your history wrapped on a globe. Songs you played in the same sittings sit close together, and you spin it in any of eight directions. The map is worked out here in your browser from your history.</p>
   <p class="muted gl-status" id="globeStatus">Mapping your songs... 0%</p><div id="globeRoot"></div>`;
 }
 async function startGlobe() {

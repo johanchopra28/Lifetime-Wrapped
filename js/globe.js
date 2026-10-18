@@ -33,7 +33,7 @@ export function mountGlobe(root, space, opts) {
 
   root.innerHTML = `<div class="gl">
     <div class="gl-bar"><button class="gl-btn" data-a="shuffle">Random song</button><button class="gl-btn" data-a="back">Back</button>
-      <span>Scrolling <span class="gl-seg" data-a="scroll"></span></span><span class="muted">${fmt(S.length)} of your most played songs</span></div>
+      <span>Scrolling <span class="gl-seg" data-a="scroll"></span></span><span class="muted">${fmt(S.length)} songs to spin through</span></div>
     <div class="gl-wrap"><div class="gl-stage" tabindex="0" aria-label="Song globe. Use the arrow keys, scroll or swipe to spin it."><div class="gl-globe"></div></div><aside class="gl-info"></aside></div>
     <p class="muted gl-hint">Spin: click a faded tile, scroll or swipe in any direction (up goes north; if your scrolling feels backwards, switch "Scrolling" above), or use the arrow keys, with Q, E, Z and C for the corners. Backspace goes back, Space picks a random song.
     Songs sit near others you played in the same sittings, so "north" just means the next song that way on that map. Come back to a spot and you find the same songs.</p></div>`;
