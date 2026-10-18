@@ -59,17 +59,17 @@ function build() {
 }
 
 // ------------------------------------------------------------------ small html helpers
-function table(head, rows, cls = "") {
-  return `<div class="scroll"><table class="${cls}"><thead><tr>${head.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+function table(head, rows, cls = "", boxCls = "") {
+  return `<div class="scroll ${boxCls}"><table class="${cls}"><thead><tr>${head.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 const songCell = s => `<a href="${link(s.id)}" target="_blank" rel="noopener noreferrer">${esc(s.name)}</a>`;
 
 /** A ranked song table with buttons to copy the Spotify links or download a CSV. */
-function songTable(id, title, list, extra = []) {
+function songTable(id, title, list, extra = [], boxCls = "") {
   lists.set(id, { title, list });
   const rows = list.map((s, i) => [String(i + 1), ...(state.covers ? [coverImg(s.id)] : []), songCell(s), esc(s.artist), ...extra.map(e => e.f(s))]);
   const buttons = list.length ? `<div class="actions"><button data-act="copy" data-id="${id}">Copy Spotify links</button><button data-act="csv" data-id="${id}">Download CSV</button></div>` : "";
-  return table(["#", ...(state.covers ? [""] : []), "Song", "Artist", ...extra.map(e => e.h)], rows, state.covers ? "covers" : "") + buttons;
+  return table(["#", ...(state.covers ? [""] : []), "Song", "Artist", ...extra.map(e => e.h)], rows, state.covers ? "covers" : "", boxCls) + buttons;
 }
 const metric = (label, value, help = "") => `<div class="metric" ${help ? `title="${esc(help)}"` : ""}><span>${esc(label)}</span><b>${value}</b></div>`;
 
@@ -113,7 +113,7 @@ function tabLife() {
     for (const r of real) { const k = at.get(r.artist); if (k !== undefined) counts[k].set(r.y, (counts[k].get(r.y) || 0) + 1); }
     return streamChart(sl.map(y => String(y.year)), top8.map((a, i) => ({ name: a, color: PALETTE[i % PALETTE.length], values: sl.map(y => counts[i].get(y.year) || 0) })), { title: "Real plays" });
   });
-  return `<h2>The songs of your life</h2>${songTable("top20", "Top songs", top, [{ h: "Real plays", f: s => n0(s.plays) }, { h: "Hours", f: s => s.hours.toFixed(1) }])}
+  return `<h2>The songs of your life</h2>${songTable("top20", "Top songs", top, [{ h: "Real plays", f: s => n0(s.plays) }, { h: "Hours", f: s => s.hours.toFixed(1) }], "scrolly")}
   <div class="two"><div><h2>Top artists</h2>${hbars(ta.map(a => ({ label: a.artist, value: a.plays, tip: `${n0(a.hours)} hours, ${n0(a.songs)} songs` })))}</div>
   <div><h2>Artist eras</h2>${eras}<p class="muted">Number one artist each year: ${yt.map(y => `${y.year} ${esc(y.top.artist)}`).join(", ")}</p></div></div>
   <h2>Milestones</h2>${table(["Play", "Date", "Song", "Artist"], ms.map(m => ["#" + n0(m.n), new Date(m.ts).toLocaleDateString(), songCell(m), esc(m.artist)]))}

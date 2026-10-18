@@ -127,6 +127,9 @@ input[list] { width: min(440px, 100%); }
 /* ------------------------------------------------------------ content */
 .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 22px; }
 .scroll { scrollbar-color: var(--grey) transparent; overflow-x: auto; border-radius: 14px; border: 1px solid var(--line); background: var(--card); }
+/* a list that scrolls inside its own box (the songs of your life), with the header staying put */
+.scroll.scrolly { max-height: 460px; overflow-y: auto; }
+.scroll.scrolly th { position: sticky; top: 0; z-index: 1; background: var(--card); border-bottom: 0; box-shadow: inset 0 -1px 0 var(--line); }
 table { border-collapse: collapse; width: 100%; font-size: .92rem; }
 th, td { padding: 9px 12px; text-align: left; vertical-align: middle; }
 th { color: var(--muted); font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; border-bottom: 1px solid var(--line); }
