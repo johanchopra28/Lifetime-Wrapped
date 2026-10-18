@@ -119,9 +119,9 @@ export function mountGlobe(root, space, opts) {
     mark();
   }
 
-  // ---- gliding: the view centre follows the target with a critically damped spring: it eases in and out and never overshoots
+  // ---- gliding: the view centre follows the target with a loose spring (damping ratio 0.7): it eases in, swings about 5% past each song and settles back
   let fx = 0, fy = 0, vx = 0, vy = 0, raf = 0, last = 0;
-  const K = 190, C = 2 * Math.sqrt(K);
+  const K = 110, C = 1.4 * Math.sqrt(K);
   function step(dt) {
     vx += ((pos[0] - fx) * K - vx * C) * dt; vy += ((pos[1] - fy) * K - vy * C) * dt; fx += vx * dt; fy += vy * dt;
     const done = Math.abs(pos[0] - fx) < 0.0008 && Math.abs(pos[1] - fy) < 0.0008 && Math.abs(vx) < 0.003 && Math.abs(vy) < 0.003;
@@ -155,12 +155,24 @@ export function mountGlobe(root, space, opts) {
   }
 
   function setPos(np) { pos = np; ensure(); sync(); panels(); glide(); }
+  function stepOnce(k) { hist.push(pos.slice()); if (hist.length > 400) hist.shift(); setPos([pos[0] + DIRS[k][2], pos[1] + DIRS[k][3]]); }
+  let chain = null;
+  const stopChain = () => { if (chain) { clearTimeout(chain.timer); chain = null; } };
   function move(k) {
+    stopChain();
     if (st.busy) return; st.busy = true; setTimeout(() => { st.busy = false; }, 90);   // short lock: quick flicks chain smoothly because the glide just retargets
-    hist.push(pos.slice()); if (hist.length > 400) hist.shift();
-    setPos([pos[0] + DIRS[k][2], pos[1] + DIRS[k][3]]);
+    stepOnce(k);
   }
-  const back = () => { if (hist.length) setPos(hist.pop()); };
+  /** A hard flick turns the globe several songs: n steps in direction k, each a little later than the one before, so it slows like a spinning ball. */
+  function spin(k, n) {
+    n = Math.max(1, Math.round(n));
+    if (chain && chain.k === k) { chain.left = Math.min(8, chain.left + n); return; }   // a flick that carries on the same way adds to the spin
+    stopChain();
+    const c = chain = { k, left: Math.min(8, n), i: 0, timer: 0 };
+    const tick = () => { if (chain !== c) return; if (c.left <= 0) { chain = null; return; } c.left--; stepOnce(k); c.i++; c.timer = setTimeout(tick, 70 + 26 * c.i); };
+    tick();
+  }
+  const back = () => { stopChain(); if (hist.length) setPos(hist.pop()); };
   function random() {
     for (const el of tiles.values()) el.remove(); tiles.clear(); cells.clear(); used.clear(); hist = []; pos = [0, 0]; fx = fy = vx = vy = 0;
     const pool = S.filter(ready), s = pool[Math.floor(Math.random() * pool.length)].i; cells.set(key(0, 0), s); used.add(s);
@@ -183,12 +195,19 @@ export function mountGlobe(root, space, opts) {
   document.addEventListener("keydown", onKey);
   stage.addEventListener("wheel", e => {
     e.preventDefault(); ax += e.deltaX; ay += e.deltaY; clearTimeout(wt); wt = setTimeout(() => { ax = ay = 0; }, 180);
-    if (Math.hypot(ax, ay) > 60) { const f = st.scroll === "reversed" ? -1 : 1; move(dirFromVector(f * ax, f * ay)); ax = ay = 0; }   // natural: scrolling up (finger down on a trackpad, wheel rolled up) goes north
+    if (Math.hypot(ax, ay) > 60) { const f = st.scroll === "reversed" ? -1 : 1; spin(dirFromVector(f * ax, f * ay), Math.min(6, Math.floor(Math.hypot(ax, ay) / 75)) || 1); ax = ay = 0; }   // a bigger scroll turns it further. natural: scrolling up (finger down on a trackpad, wheel rolled up) goes north
   }, { passive: false });
-  stage.addEventListener("pointerdown", e => { down = { x: e.clientX, y: e.clientY }; swiped = false; });
+  let samples = [];
+  stage.addEventListener("pointerdown", e => { down = { x: e.clientX, y: e.clientY }; swiped = false; samples = [{ x: e.clientX, y: e.clientY, t: e.timeStamp }]; });
+  stage.addEventListener("pointermove", e => { if (down) { samples.push({ x: e.clientX, y: e.clientY, t: e.timeStamp }); if (samples.length > 10) samples.shift(); } });
   stage.addEventListener("pointerup", e => {
-    if (!down) return; const dx = e.clientX - down.x, dy = e.clientY - down.y; down = null;
-    if (Math.hypot(dx, dy) > 46) { swiped = true; move(dirFromVector(-dx, -dy)); setTimeout(() => { swiped = false; }, 50); }   // like dragging a map: the view moves opposite to the finger, so swipe down = north, swipe right = west
+    if (!down) return; const dx = e.clientX - down.x, dy = e.clientY - down.y, dist = Math.hypot(dx, dy); down = null;
+    if (dist > 46) {
+      const recent = samples.filter(m => e.timeStamp - m.t <= 120), a = recent[0] || samples[0];
+      const speed = Math.hypot(e.clientX - a.x, e.clientY - a.y) / Math.max(16, e.timeStamp - a.t);   // pixels per millisecond at the moment of release
+      const steps = Math.min(8, Math.max(1, Math.round(1 + Math.max(0, speed - 0.7) * 2.2 + Math.max(0, dist - 120) / 140)));   // a light drag moves one song, a hard flick up to eight
+      swiped = true; spin(dirFromVector(-dx, -dy), steps); setTimeout(() => { swiped = false; }, 50);   // like turning a globe: the view moves opposite to the finger, so swipe down = north, swipe right = west
+    }
   });
   const seg = q('[data-a="scroll"]');
   seg.innerHTML = [["natural", "Natural"], ["reversed", "Reversed"]].map(([k, l]) => `<button data-s="${k}" aria-pressed="${st.scroll === k}" title="${k === "natural" ? "Finger down (or wheel up) goes north, finger right goes west" : "Finger up (or wheel down) goes north, finger left goes west"}">${l}</button>`).join("");
@@ -201,6 +220,6 @@ export function mountGlobe(root, space, opts) {
   const paintCount = () => { countEl.textContent = opts.useCovers ? `${fmt(S.slice(0, target).filter(ready).length)} of ${fmt(target)} most played songs` : `${fmt(S.length)} songs to spin through`; };
   paintCount(); const countTimer = setInterval(paintCount, 2000);
   random();
-  active = { destroy() { cancelAnimationFrame(raf); raf = 0; clearInterval(countTimer); ro.disconnect(); document.removeEventListener("keydown", onKey); }, step, state: () => ({ pos, cells, S }) };
+  active = { destroy() { cancelAnimationFrame(raf); raf = 0; clearInterval(countTimer); stopChain(); ro.disconnect(); document.removeEventListener("keydown", onKey); }, step, peek: () => [fx, fy], state: () => ({ pos, cells, S }) };
   return active;
 }
