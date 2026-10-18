@@ -79,6 +79,16 @@ small { font-size: .8em; }
 .btn-primary:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
 .warn { margin: 16px 0 0; padding: 14px 18px; border-radius: 12px; font-size: .92rem; background: color-mix(in srgb, var(--amber) 10%, transparent); border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--line)); }
 
+/* landing tabs: one section at a time under the drop zone */
+.lt-list { display: inline-flex; flex-wrap: wrap; gap: 6px 22px; }
+.bar-nav [role="tab"] { font: inherit; background: none; border: 0; border-bottom: 2px solid transparent; padding: 6px 0; color: var(--muted); cursor: pointer; }
+.bar-nav [role="tab"]:hover { color: var(--fg); }
+.bar-nav [role="tab"][aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+.bar-nav [role="tab"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.bar-nav { align-items: center; }
+.land-panel.section { margin-top: 36px; }
+.land-panel:focus { outline: none; }
+
 /* privacy cards and the check-it-yourself button */
 .pcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
 .pcard { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }

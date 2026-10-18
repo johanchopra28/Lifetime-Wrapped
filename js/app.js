@@ -369,6 +369,26 @@ $("sampleBtn").addEventListener("click", () => {
   handleFiles([file], true);
 });
 
+// Landing tabs (Get your file / Privacy / What you get): one section at a time, under the drop zone.
+const landTabs = [...document.querySelectorAll("[data-tab]")];
+function showLandTab(id, scroll) {
+  for (const b of landTabs) { const on = b.dataset.tab === id; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; }
+  for (const p of document.querySelectorAll(".land-panel")) p.hidden = p.id !== id;
+  if (scroll) $(id).scrollIntoView({ behavior: "smooth", block: "start" });
+}
+for (const b of landTabs) {
+  b.addEventListener("click", () => showLandTab(b.dataset.tab, true));
+  b.addEventListener("keydown", e => {   // arrow keys move between tabs, as people expect from tabs
+    const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+    if (!step) return;
+    const next = landTabs[(landTabs.indexOf(b) + step + landTabs.length) % landTabs.length];
+    showLandTab(next.dataset.tab, false);
+    next.focus();
+    e.preventDefault();
+  });
+}
+showLandTab(landTabs.some(b => b.dataset.tab === location.hash.slice(1)) ? location.hash.slice(1) : "how", false);
+
 // "Do not take our word for it" button on the landing page: shows or hides the explanation.
 $("verifyBtn").addEventListener("click", () => {
   const open = $("verifyBtn").getAttribute("aria-expanded") === "true";
