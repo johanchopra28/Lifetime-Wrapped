@@ -14,7 +14,7 @@
   <section id="landing">
     <div class="hero">
       <span class="eyebrow">Free &middot; private &middot; runs in your browser</span>
-      <h1>Your whole Spotify life, <em>in one page.</em></h1>
+      <h1>See every year of your listening <em>in one place.</em></h1>
       <p class="lead">Not just one year. Every song, artist and late night since you started, with the song that ruled each month, the years you changed taste, and the songs you quietly left behind.</p>
 
       <label id="drop" class="drop">
@@ -70,16 +70,18 @@
       <p class="muted" style="text-align:center;margin-top:12px">The shorter "Account data" download only covers the last year, so it shows far less.</p>
     </div>
 
-    <div class="section">
-      <div class="privacy">
-        <h2>Your data stays on your computer</h2>
-        <ul>
-          <li>The file is read by this page, <b>in your browser</b>. There is no server behind it to receive your history, and nothing is uploaded.</li>
-          <li>Nothing is saved: no database, no cookies, no analytics. Close the tab and it is gone.</li>
-          <li>Only the song, artist, album and play length are read. Your IP address, country and device in the file are ignored.</li>
-          <li>The page's security policy blocks all network connections except an optional album-cover lookup. That lookup is <b>off by default</b>, and when you switch it on, only the Spotify IDs of the songs on screen go to Spotify.</li>
-          <li>Check it yourself: open your browser's developer tools, watch the Network tab while you load a file, and nothing leaves. The code is a handful of plain files, with no outside libraries.</li>
-        </ul>
+    <div class="section" id="privacy">
+      <h2>Your data stays on your computer</h2>
+      <p class="sub">This page has no server to send anything to. It reads the file inside your browser tab.</p>
+      <div class="pcards">
+        <div class="pcard"><span class="pic">&#128274;</span><b>Never uploaded</b><p>The file is read by this page, in your browser. There is no server behind it to receive your history.</p></div>
+        <div class="pcard"><span class="pic">&#128451;&#65039;</span><b>Nothing is stored</b><p>No database, no cookies, no analytics. Close the tab and every trace is gone.</p></div>
+        <div class="pcard"><span class="pic">&#127925;</span><b>Only the music is read</b><p>Song, artist, album, play length and time. The IP address, country and device in your file are ignored.</p></div>
+      </div>
+      <p class="muted pnote">The one optional exception is album covers. They are <b>off by default</b>, and when you switch them on, only the Spotify IDs of the songs on screen go to Spotify.</p>
+      <div class="verify-wrap">
+        <button type="button" id="verifyBtn" class="verify-btn" aria-expanded="false" aria-controls="verify">Do not take our word for it: check it yourself</button>
+        <div id="verify" class="verify" hidden>Open your browser's developer tools and watch the Network tab while you load a file: nothing leaves. The page's security policy blocks every network connection except the optional album-cover lookup, and the code is a handful of plain files with no outside libraries.</div>
       </div>
     </div>
     <p class="landfoot">Not affiliated with Spotify. <a href="https://github.com/johanchopra28/Lifetime-Wrapped" target="_blank" rel="noopener noreferrer">View the source</a></p>
