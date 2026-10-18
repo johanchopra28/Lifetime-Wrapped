@@ -1,6 +1,8 @@
 import * as A from "./analysis.js";
 import { loadFiles } from "./load.js";
 import { sampleHistory } from "./sample.js";
+import { buildSongSpace } from "./embed.js";
+import { mountGlobe, unmountGlobe } from "./globe.js";
 import { esc, bars, hbars, stacked, heatmap, calendar, streamChart, streamTipHtml } from "./charts.js";
 
 const $ = id => document.getElementById(id);
@@ -75,7 +77,7 @@ const metric = (label, value, help = "") => `<div class="metric" ${help ? `title
 
 // ------------------------------------------------------------------ tabs
 const TABS = [["life", "Lifetime"], ["year", "Year by year"], ["cmp", "Compare years"], ["when", "When you listen"], ["habits", "Habits"],
-              ["forgot", "Forgotten favourites"], ["missed", "Missed from artists you love"], ["artist", "Artist deep dive"], ["card", "Wrapped card"]];
+              ["forgot", "Forgotten favourites"], ["missed", "Missed from artists you love"], ["artist", "Artist deep dive"], ["globe", "Song globe"], ["card", "Wrapped card"]];
 
 function render() {
   const { real, all } = state.data;
@@ -91,8 +93,10 @@ function render() {
 }
 
 function renderPanel() {
-  const fn = { life: tabLife, year: tabYear, cmp: tabCompare, when: tabWhen, habits: tabHabits, forgot: tabForgot, missed: tabMissed, artist: tabArtist, card: tabCard }[state.tab];
+  const fn = { life: tabLife, year: tabYear, cmp: tabCompare, when: tabWhen, habits: tabHabits, forgot: tabForgot, missed: tabMissed, artist: tabArtist, globe: tabGlobe, card: tabCard }[state.tab];
+  unmountGlobe();
   $("panel").innerHTML = fn();
+  if (state.tab === "globe") startGlobe();
   hydrateCovers();
   fitFrame();
 }
@@ -237,6 +241,21 @@ function tabArtist() {
   ${mon.length > 60 ? bars(mon.slice(-60), { height: 220 }) : bars(mon, { height: 220 })}
   <div class="two"><div><h3>Your favourite songs by them</h3>${songTable("artist", "My " + state.artist, ap.topSongs, [{ h: "Plays", f: s => n0(s.plays) }, { h: "Hours", f: s => s.hours.toFixed(1) }])}</div>
   <div><h3>Quiet spells <small>(90+ days without them)</small></h3>${ap.quiet.length ? table(["From", "To", "Days"], ap.quiet.map(q => [A.dayText(q.start), A.dayText(q.end), String(q.days)])) : "<p class=muted>None. You never went three months without them.</p>"}</div></div>`;
+}
+
+function tabGlobe() {
+  return `<h2>Song globe</h2><p class="muted">Your most played songs wrapped on a globe. Songs you played in the same sittings sit close together, and you spin it in any of eight directions. The map is worked out here in your browser from your history.</p>
+  <p class="muted gl-status" id="globeStatus">Mapping your songs... 0%</p><div id="globeRoot"></div>`;
+}
+async function startGlobe() {
+  const data = state.data;
+  const space = await memo("globe", () => buildSongSpace(data.real, { onProgress: p => { const el = $("globeStatus"); if (el) el.textContent = `Mapping your songs... ${Math.round(p * 100)}%`; } }));
+  const root = $("globeRoot");
+  if (state.tab !== "globe" || state.data !== data || !root) return;   // the visitor moved on while it was working
+  const status = $("globeStatus"); if (status) status.remove();
+  if (!space.songs.length) { root.innerHTML = `<p class="muted">The globe needs a longer history: at least 60 different songs played in listening sessions. Load your full Spotify export to see it.</p>`; fitFrame(); return; }
+  mountGlobe(root, space, { useCovers: state.covers, coverUrl: id => coverCache.get(id), requestCovers: hydrateCovers });
+  fitFrame();
 }
 
 function tabCard() {
