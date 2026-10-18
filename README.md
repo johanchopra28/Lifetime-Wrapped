@@ -55,6 +55,10 @@ Spotify account, Privacy settings, Download your data, tick **Extended streaming
 - `js/charts.js` draws SVG charts; `js/app.js` is the page.
 - `tests/reference.py` + `tests/compare.js` check the maths against the Python version of the same analysis (`wrapped.py` in the Spotify pipeline project). On a real 327,508-play export all 18 compared figures matched exactly.
 
+## Song globe
+
+A tab that wraps the visitor's most played songs (up to 1,200) on a globe they spin in eight directions. `js/embed.js` works out the map in the browser from the loaded history: plays are split into sessions (30 minutes of silence ends one), a songs-by-sessions matrix is reduced to a 24-dimension "listened together" embedding (subspace iteration), and exact t-SNE places each song in 2D. The same history always gives the same map. `js/globe.js` draws the 3D sphere and keeps the endless grid. Album covers use the same Spotify cover lookup as the rest of the site. It needs at least 60 different songs played in sessions, so the sample data shows a message instead.
+
 ## Notes on the maths
 
 - A real play is 30 seconds or more. Songs are merged by lowercase title + artist, so a song released twice counts once.
