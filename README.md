@@ -5,7 +5,7 @@ A static web page that turns your Spotify **Extended streaming history** into a 
 ## Privacy
 
 - The file is read **in your browser**. There is no server, no upload, no database, no cookies and no analytics.
-- `index.html` sets a Content Security Policy that blocks every network request the page could make, so it cannot send data out, even by mistake.
+- `index.html` sets a Content Security Policy that blocks every network request except one optional feature: album covers. Covers are **off by default**; if the visitor switches them on, the page asks Spotify's public oEmbed service (open.spotify.com) for the art of the songs on screen and loads the images from Spotify's image servers, so those songs' Spotify IDs are sent to Spotify. Nothing else can leave the page.
 - Only song, artist, album, play length and time are read. IP address, country and device in the export are ignored.
 - There are no outside libraries or CDN links: plain HTML, CSS and JavaScript (`js/`), so it can be read in full.
 - Settings such as songs you leave out live in memory only and vanish when the tab closes.
@@ -42,7 +42,7 @@ Spotify account, Privacy settings, Download your data, tick **Extended streaming
 ## What is deliberately not here
 
 - Playlist creation (needs a Spotify login; Spotify limits new apps to a handful of users). Every song list has **Copy Spotify links** and **Download CSV** instead.
-- Album covers and audio-feature moods (both need outside services).
+- Audio-feature moods (they need an outside service and a key). Album covers are available as the opt-in switch described above.
 
 ## Layout
 
