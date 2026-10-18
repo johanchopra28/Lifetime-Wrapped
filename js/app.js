@@ -372,26 +372,6 @@ $("sampleBtn").addEventListener("click", () => {
   handleFiles([file], true);
 });
 
-// Landing tabs (Get your file / Privacy / What you get): one section at a time, under the drop zone.
-const landTabs = [...document.querySelectorAll("[data-tab]")];
-function showLandTab(id, scroll) {
-  for (const b of landTabs) { const on = b.dataset.tab === id; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; }
-  for (const p of document.querySelectorAll(".land-panel")) p.hidden = p.id !== id;
-  if (scroll) scrollToElement($(id));
-}
-for (const b of landTabs) {
-  b.addEventListener("click", () => showLandTab(b.dataset.tab, true));
-  b.addEventListener("keydown", e => {   // arrow keys move between tabs, as people expect from tabs
-    const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
-    if (!step) return;
-    const next = landTabs[(landTabs.indexOf(b) + step + landTabs.length) % landTabs.length];
-    showLandTab(next.dataset.tab, false);
-    next.focus();
-    e.preventDefault();
-  });
-}
-showLandTab(landTabs.some(b => b.dataset.tab === location.hash.slice(1)) ? location.hash.slice(1) : "how", false);
-
 // "Do not take our word for it" button on the landing page: shows or hides the explanation.
 $("verifyBtn").addEventListener("click", () => {
   const open = $("verifyBtn").getAttribute("aria-expanded") === "true";
@@ -418,16 +398,33 @@ if (hostFrame()) {
   fitFrame();
 }
 
-// Smoothly scrolls `target` to the top of the view. In the Streamlit frame the host page does the scrolling (scrollIntoView
-// would jump there), so that page's scroller is driven directly; outside a frame this is a plain smooth scroll.
+// Glides `target` to the top of the view. The animation is driven from here (one scroll step per frame) instead of asking the
+// browser for "smooth" scrolling, because browsers skip that when the system has animations turned off. In the Streamlit frame
+// the host page does the scrolling, so that page's scroller is driven; outside a frame it is this page.
+let glide = 0;
 function scrollToElement(target) {
   const fe = hostFrame();
-  if (!fe) { target.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
-  const host = fe.ownerDocument;
-  const scroller = fe.closest('[data-testid="stMain"]') || host.scrollingElement;
+  const host = fe ? fe.ownerDocument : document;
+  const scroller = fe ? (fe.closest('[data-testid="stMain"]') || host.scrollingElement) : host.scrollingElement;
   const base = scroller === host.scrollingElement ? 0 : scroller.getBoundingClientRect().top;
-  const y = fe.getBoundingClientRect().top - base + scroller.scrollTop + target.getBoundingClientRect().top - 16;
-  scroller.scrollTo({ top: Math.max(y, 0), behavior: "smooth" });
+  const inView = fe ? fe.getBoundingClientRect().top + target.getBoundingClientRect().top : target.getBoundingClientRect().top;
+  const from = scroller.scrollTop;
+  const to = Math.max(from + inView - base - 16, 0);
+  const id = ++glide, started = performance.now();
+  const ms = Math.min(900, 400 + Math.abs(to - from) * 0.25);
+  const ease = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const stop = () => { glide++; };                                // a wheel, touch or key press hands control back to the visitor
+  for (const ev of ["wheel", "touchstart", "keydown"]) { document.addEventListener(ev, stop, { once: true, passive: true }); host.addEventListener(ev, stop, { once: true, passive: true }); }
+  const step = () => {
+    if (id !== glide) return;
+    const t = Math.min((performance.now() - started) / ms, 1);
+    scroller.scrollTo({ top: from + (to - from) * ease(t), behavior: "instant" });   // "instant" beats any CSS scroll-behavior, so frames are not re-smoothed
+    if (t < 1) next();
+  };
+  // Normally one step per animation frame. A page that is not being painted (a background tab) gets no frames, so a timer
+  // steps instead and the scroll still arrives.
+  const next = () => { let ran = false; const run = () => { if (!ran) { ran = true; step(); } }; requestAnimationFrame(run); setTimeout(run, 50); };
+  next();
 }
 
 document.addEventListener("click", e => {
