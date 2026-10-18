@@ -195,7 +195,7 @@ function tabHabits() {
   <h2>Down the memory lane</h2><p class="muted">On a day you play a song at all, you play it ${ml.average.toFixed(2)} times on average. These songs beat that: their plays per day you listened are above your usual. Songs with under 10 real plays are left out.</p>
   <div class="seg"><span>Played on at least</span>${[1, 2, 3].map(n => `<button class="${state.lane === n ? "on" : ""}" data-act="lane" data-k="${n}">${n} day${n > 1 ? "s" : ""}</button>`).join("")}</div>
   <p><b>${ml.list.length} songs shown</b> of ${n0(ml.total)}, ranked by plays per listening day.</p>
-  ${songTable("lane", "Down the memory lane", ml.list, [{ h: "Plays/day", f: s => s.perDay.toFixed(2) }, { h: "Plays", f: s => n0(s.plays) }, { h: "Days played", f: s => n0(s.days) }, { h: "Replay days", f: s => n0(s.replayDays) }])}`;
+  ${songTable("lane", "Down the memory lane", ml.list, [{ h: "Plays/day", f: s => s.perDay.toFixed(2) }, { h: "Plays", f: s => n0(s.plays) }, { h: "Days played", f: s => n0(s.days) }, { h: "Replay days", f: s => n0(s.replayDays) }], "scrolly")}`;
 }
 
 function tabForgot() {
