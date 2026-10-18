@@ -26,8 +26,8 @@ export function mountGlobe(root, space, opts) {
   const S = space.songs, years = space.years;
   const q = sel => root.querySelector(sel);
   let savedStyle = null;
-  try { savedStyle = localStorage.getItem("gridScroll"); } catch (e) { /* storage may be blocked */ }
-  const st = { busy: false, scroll: savedStyle === "wheel" ? "wheel" : "touch" };
+  try { savedStyle = localStorage.getItem("gridScroll2"); } catch (e) { /* storage may be blocked */ }
+  const st = { busy: false, scroll: savedStyle === "reversed" ? "reversed" : "natural" };
   const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const ready = s => !opts.useCovers || !!opts.coverUrl(s.id);   // a song can appear once its cover is in
   const xs = S.map(s => s.x), ys = S.map(s => s.y), WX = Math.max(...xs) - Math.min(...xs) + 20, WY = Math.max(...ys) - Math.min(...ys) + 20;
@@ -36,7 +36,7 @@ export function mountGlobe(root, space, opts) {
     <div class="gl-bar"><button class="gl-btn" data-a="shuffle">Random song</button><button class="gl-btn" data-a="back">Back</button>
       <span>Scrolling <span class="gl-seg" data-a="scroll"></span></span><span class="muted gl-count"></span></div>
     <div class="gl-wrap"><div class="gl-stage" tabindex="0" aria-label="Song globe. Use the arrow keys, scroll or swipe to spin it."><div class="gl-globe"></div></div><aside class="gl-info"></aside></div>
-    <p class="muted gl-hint">Spin: click a faded tile, scroll or swipe in any direction (up goes north; if your scrolling feels backwards, switch "Scrolling" above), or use the arrow keys, with Q, E, Z and C for the corners. Backspace goes back, Space picks a random song.
+    <p class="muted gl-hint">Spin: click a faded tile, scroll or swipe in any direction (drag it like a map: swipe down to go north, swipe right to go west; if that feels backwards on your trackpad, switch "Scrolling" above), or use the arrow keys, with Q, E, Z and C for the corners. Backspace goes back, Space picks a random song.
     Songs sit near others you played in the same sittings, so "north" just means the next song that way on that map. Come back to a spot and you find the same songs.</p></div>`;
   const stage = q(".gl-stage"), globe = q(".gl-globe");
 
@@ -183,16 +183,16 @@ export function mountGlobe(root, space, opts) {
   document.addEventListener("keydown", onKey);
   stage.addEventListener("wheel", e => {
     e.preventDefault(); ax += e.deltaX; ay += e.deltaY; clearTimeout(wt); wt = setTimeout(() => { ax = ay = 0; }, 180);
-    if (Math.hypot(ax, ay) > 60) { const f = st.scroll === "touch" ? -1 : 1; move(dirFromVector(f * ax, f * ay)); ax = ay = 0; }   // trackpad or touch: fingers up goes north; mouse wheel: rolled up goes north
+    if (Math.hypot(ax, ay) > 60) { const f = st.scroll === "reversed" ? -1 : 1; move(dirFromVector(f * ax, f * ay)); ax = ay = 0; }   // natural: scrolling up (finger down on a trackpad, wheel rolled up) goes north
   }, { passive: false });
   stage.addEventListener("pointerdown", e => { down = { x: e.clientX, y: e.clientY }; swiped = false; });
   stage.addEventListener("pointerup", e => {
     if (!down) return; const dx = e.clientX - down.x, dy = e.clientY - down.y; down = null;
-    if (Math.hypot(dx, dy) > 46) { swiped = true; move(dirFromVector(dx, dy)); setTimeout(() => { swiped = false; }, 50); }   // the globe turns the way the finger does: swipe up = north
+    if (Math.hypot(dx, dy) > 46) { swiped = true; move(dirFromVector(-dx, -dy)); setTimeout(() => { swiped = false; }, 50); }   // like dragging a map: the view moves opposite to the finger, so swipe down = north, swipe right = west
   });
   const seg = q('[data-a="scroll"]');
-  seg.innerHTML = [["touch", "Trackpad / touch"], ["wheel", "Mouse wheel"]].map(([k, l]) => `<button data-s="${k}" aria-pressed="${st.scroll === k}" title="${k === "touch" ? "Fingers moving up go north" : "Wheel rolled up goes north"}">${l}</button>`).join("");
-  seg.addEventListener("click", e => { const b = e.target.closest("[data-s]"); if (!b) return; st.scroll = b.dataset.s; seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); try { localStorage.setItem("gridScroll", st.scroll); } catch (err) { /* ignore */ } });
+  seg.innerHTML = [["natural", "Natural"], ["reversed", "Reversed"]].map(([k, l]) => `<button data-s="${k}" aria-pressed="${st.scroll === k}" title="${k === "natural" ? "Finger down (or wheel up) goes north, finger right goes west" : "Finger up (or wheel down) goes north, finger left goes west"}">${l}</button>`).join("");
+  seg.addEventListener("click", e => { const b = e.target.closest("[data-s]"); if (!b) return; st.scroll = b.dataset.s; seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); try { localStorage.setItem("gridScroll2", st.scroll); } catch (err) { /* ignore */ } });
   q(".gl-bar").addEventListener("click", e => { const a = e.target.closest("[data-a]"); if (!a) return; if (a.dataset.a === "shuffle") random(); else if (a.dataset.a === "back") back(); });
   const ro = new ResizeObserver(() => { if (cells.size) { size(); draw(fx, fy); } }); ro.observe(stage);
 
