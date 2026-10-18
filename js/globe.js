@@ -7,7 +7,7 @@ const A = c => String.fromCharCode(c);   // arrows built from character codes so
 const DIRS = [["NW", -135, -1, -1, A(0x2196)], ["N", -90, 0, -1, A(0x2191)], ["NE", -45, 1, -1, A(0x2197)], ["W", 180, -1, 0, A(0x2190)], ["E", 0, 1, 0, A(0x2192)], ["SW", 135, -1, 1, A(0x2199)], ["S", 90, 0, 1, A(0x2193)], ["SE", 45, 1, 1, A(0x2198)]];
 const DIR_AT = new Map(DIRS.map((d, k) => [d[2] + "," + d[3], k]));
 const KEYMAP = { ArrowUp: 1, ArrowDown: 6, ArrowLeft: 3, ArrowRight: 4, q: 0, e: 2, z: 5, c: 7, Q: 0, E: 2, Z: 5, C: 7, "7": 0, "8": 1, "9": 2, "4": 3, "6": 4, "1": 5, "2": 6, "3": 7 };
-const RING = 3, STEP = 0.27;   // tiles kept around the middle; radians between neighbouring tiles (bigger = rounder)
+const RING = 3, AHEAD = 4, STEP = 0.27;   // tiles kept around the middle; cells decided this far out; radians between neighbouring tiles
 const fmt = n => n.toLocaleString("en-US");
 const angDiff = (a, b) => { let d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -19,7 +19,7 @@ export function unmountGlobe() { if (active) { active.destroy(); active = null; 
 
 /**
  * root: element to fill. space: { songs, years } from embed.js.
- * opts: { coverUrl(id) -> cached url or undefined, requestCovers() -> fetch covers for the img[data-id] now on screen, useCovers }
+ * opts: { useCovers, coverUrl(id) -> the cover url if it has loaded }. With covers on, the globe only ever uses songs whose cover has loaded.
  */
 export function mountGlobe(root, space, opts) {
   unmountGlobe();
@@ -29,11 +29,12 @@ export function mountGlobe(root, space, opts) {
   try { savedStyle = localStorage.getItem("gridScroll"); } catch (e) { /* storage may be blocked */ }
   const st = { busy: false, scroll: savedStyle === "wheel" ? "wheel" : "touch" };
   const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ready = s => !opts.useCovers || !!opts.coverUrl(s.id);   // a song can appear once its cover is in
   const xs = S.map(s => s.x), ys = S.map(s => s.y), WX = Math.max(...xs) - Math.min(...xs) + 20, WY = Math.max(...ys) - Math.min(...ys) + 20;
 
   root.innerHTML = `<div class="gl">
     <div class="gl-bar"><button class="gl-btn" data-a="shuffle">Random song</button><button class="gl-btn" data-a="back">Back</button>
-      <span>Scrolling <span class="gl-seg" data-a="scroll"></span></span><span class="muted">${fmt(S.length)} songs to spin through</span></div>
+      <span>Scrolling <span class="gl-seg" data-a="scroll"></span></span><span class="muted gl-count"></span></div>
     <div class="gl-wrap"><div class="gl-stage" tabindex="0" aria-label="Song globe. Use the arrow keys, scroll or swipe to spin it."><div class="gl-globe"></div></div><aside class="gl-info"></aside></div>
     <p class="muted gl-hint">Spin: click a faded tile, scroll or swipe in any direction (up goes north; if your scrolling feels backwards, switch "Scrolling" above), or use the arrow keys, with Q, E, Z and C for the corners. Backspace goes back, Space picks a random song.
     Songs sit near others you played in the same sittings, so "north" just means the next song that way on that map. Come back to a spot and you find the same songs.</p></div>`;
@@ -51,7 +52,7 @@ export function mountGlobe(root, space, opts) {
       const wrap = (v, size) => ((v + size / 2) % size + size) % size - size / 2;
       let b = null, bs = 1e9;
       for (const s of S) {
-        if (s.i === i || used.has(s.i)) continue;
+        if (s.i === i || used.has(s.i) || !ready(s)) continue;
         const dx = wrapped ? wrap(s.x - c.x, WX) : s.x - c.x, dy = wrapped ? wrap(s.y - c.y, WY) : s.y - c.y;
         const dist = Math.hypot(dx, dy) || 0.01, dev = angDiff(Math.atan2(dy, dx) * 180 / Math.PI, DIRS[k][1]);
         if (dev > 75) continue;
@@ -60,11 +61,11 @@ export function mountGlobe(root, space, opts) {
       return b;
     };
     let b = search(false); if (b === null) b = search(true);
-    if (b === null) { let bd = 1e9; for (const s of S) { if (used.has(s.i)) continue; const d = Math.hypot(s.x - c.x, s.y - c.y); if (d < bd) { bd = d; b = s.i; } } }
+    if (b === null) { let bd = 1e9; for (const s of S) { if (used.has(s.i) || !ready(s)) continue; const d = Math.hypot(s.x - c.x, s.y - c.y); if (d < bd) { bd = d; b = s.i; } } }
     return b;
   }
   function recycle() {   // every song is in use: forget the cells far from you so their songs can come back
-    for (const k of [...cells.keys()]) { const [x, y] = k.split(",").map(Number); if (cheb(x, y) > RING + 1) cells.delete(k); }
+    for (const k of [...cells.keys()]) { const [x, y] = k.split(",").map(Number); if (cheb(x, y) > AHEAD + 1) cells.delete(k); }
     used.clear(); for (const v of cells.values()) used.add(v);
   }
   function assignCell(gx, gy) {
@@ -77,10 +78,10 @@ export function mountGlobe(root, space, opts) {
     if (!ref) return;
     let s = pickInDir(ref[0], ref[1]);
     if (s === null) { recycle(); s = pickInDir(ref[0], ref[1]); }
-    if (s === null) s = S[Math.floor(Math.random() * S.length)].i;
+    if (s === null) { const pool = S.filter(ready); s = pool[Math.floor(Math.random() * pool.length)].i; }
     cells.set(key(gx, gy), s); used.add(s);
   }
-  const ensure = () => { for (let r = 1; r <= RING; r++) for (let x = pos[0] - r; x <= pos[0] + r; x++) for (let y = pos[1] - r; y <= pos[1] + r; y++) if (cheb(x, y) === r) assignCell(x, y); };
+  const ensure = () => { for (let r = 1; r <= AHEAD; r++) for (let x = pos[0] - r; x <= pos[0] + r; x++) for (let y = pos[1] - r; y <= pos[1] + r; y++) if (cheb(x, y) === r) assignCell(x, y); };
 
   // ---- the sphere
   function size() {
@@ -91,7 +92,7 @@ export function mountGlobe(root, space, opts) {
   function makeTile(gx, gy) {
     const s = S[cells.get(key(gx, gy))], el = document.createElement("button"), url = opts.useCovers ? opts.coverUrl(s.id) : null;
     el.className = "gl-tile"; el.style.width = el.style.height = T + "px"; el.style.marginLeft = el.style.marginTop = -T / 2 + "px";
-    el.innerHTML = `<div class="gl-fb" style="background:linear-gradient(135deg,hsl(${hue(s.artist)},55%,34%),hsl(${(hue(s.artist) + 45) % 360},60%,16%))"></div>${opts.useCovers ? `<img data-id="${esc(s.id)}" alt="" draggable="false" ${url ? `src="${esc(url)}"` : ""}>` : ""}
+    el.innerHTML = `<div class="gl-fb" style="background:linear-gradient(135deg,hsl(${hue(s.artist)},55%,34%),hsl(${(hue(s.artist) + 45) % 360},60%,16%))"></div>${opts.useCovers ? `<img alt="" draggable="false" ${url ? `src="${esc(url)}"` : ""}>` : ""}
       <div class="gl-cap"><b>${esc(s.name)}</b><span>${esc(s.artist)}</span></div><span class="gl-dir"></span>`;
     el.dataset.g = key(gx, gy); globe.appendChild(el); tiles.set(key(gx, gy), el);
     return el;
@@ -115,7 +116,7 @@ export function mountGlobe(root, space, opts) {
   function sync() {
     for (let x = pos[0] - RING; x <= pos[0] + RING; x++) for (let y = pos[1] - RING; y <= pos[1] + RING; y++) if (cells.has(key(x, y)) && !tiles.has(key(x, y))) makeTile(x, y);
     for (const [k, el] of tiles) { const [x, y] = k.split(",").map(Number); if (cheb(x, y) > RING + 1 || !cells.has(k)) { el.remove(); tiles.delete(k); } }
-    mark(); if (opts.useCovers) opts.requestCovers();
+    mark();
   }
 
   // ---- gliding: the view centre follows the target with a critically damped spring: it eases in and out and never overshoots
@@ -144,7 +145,7 @@ export function mountGlobe(root, space, opts) {
   function drawMini() {
     const cv = q(".gl-mini"); if (!cv) return; const g = cv.getContext("2d"), W = cv.width, k = W / 1040, o = 20 * k;
     g.fillStyle = "#0b0e13"; g.fillRect(0, 0, W, W);
-    g.fillStyle = "rgba(131,201,255,.3)"; for (const s of S) g.fillRect(s.x * k + o - 1.5, s.y * k + o - 1.5, 3.4, 3.4);
+    g.fillStyle = "rgba(131,201,255,.3)"; for (const s of S) if (ready(s)) g.fillRect(s.x * k + o - 1.5, s.y * k + o - 1.5, 3.4, 3.4);
     const at = p => { const v = cells.get(key(p[0], p[1])); return v === undefined ? null : S[v]; };
     g.strokeStyle = "rgba(255,255,255,.35)"; g.lineWidth = 2; g.beginPath(); let first = true;
     for (const p of hist.slice(-14).concat([pos])) { const s = at(p); if (!s) continue; first ? g.moveTo(s.x * k + o, s.y * k + o) : g.lineTo(s.x * k + o, s.y * k + o); first = false; } g.stroke();
@@ -162,7 +163,7 @@ export function mountGlobe(root, space, opts) {
   const back = () => { if (hist.length) setPos(hist.pop()); };
   function random() {
     for (const el of tiles.values()) el.remove(); tiles.clear(); cells.clear(); used.clear(); hist = []; pos = [0, 0]; fx = fy = vx = vy = 0;
-    const s = S[Math.floor(Math.random() * S.length)].i; cells.set(key(0, 0), s); used.add(s);
+    const pool = S.filter(ready), s = pool[Math.floor(Math.random() * pool.length)].i; cells.set(key(0, 0), s); used.add(s);
     ensure(); size(); sync(); draw(fx, fy); panels();
   }
 
@@ -195,7 +196,10 @@ export function mountGlobe(root, space, opts) {
   q(".gl-bar").addEventListener("click", e => { const a = e.target.closest("[data-a]"); if (!a) return; if (a.dataset.a === "shuffle") random(); else if (a.dataset.a === "back") back(); });
   const ro = new ResizeObserver(() => { if (cells.size) { size(); draw(fx, fy); } }); ro.observe(stage);
 
+  const countEl = q(".gl-count");
+  const paintCount = () => { const n = opts.useCovers ? S.filter(ready).length : S.length; countEl.textContent = opts.useCovers && n < S.length ? `${fmt(n)} of ${fmt(S.length)} songs ready, more join as their covers load` : `${fmt(S.length)} songs to spin through`; };
+  paintCount(); const countTimer = setInterval(paintCount, 2000);
   random();
-  active = { destroy() { cancelAnimationFrame(raf); raf = 0; ro.disconnect(); document.removeEventListener("keydown", onKey); }, step, state: () => ({ pos, cells, S }) };
+  active = { destroy() { cancelAnimationFrame(raf); raf = 0; clearInterval(countTimer); ro.disconnect(); document.removeEventListener("keydown", onKey); }, step, state: () => ({ pos, cells, S }) };
   return active;
 }

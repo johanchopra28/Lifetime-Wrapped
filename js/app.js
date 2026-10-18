@@ -48,6 +48,7 @@ function build() {
   const plays = A.excludeSongs(state.raw, new Set(state.excluded.keys()));
   state.data = A.prepare(plays);
   memoCache = new Map();
+  for (const id of coverQueue.splice(0)) settle(id);   // lookups queued for the previous history are no longer wanted
   const years = A.byYear(state.data.real).map(y => y.year);
   state.year = years[years.length - 1];
   state.month = null;
@@ -247,6 +248,7 @@ function tabGlobe() {
   return `<h2>Song globe</h2><p class="muted">Every song in your history wrapped on a globe. Songs you played in the same sittings sit close together, and you spin it in any of eight directions. The map is worked out here in your browser from your history.</p>
   <p class="muted gl-status" id="globeStatus">Mapping your songs... 0%</p><div id="globeRoot"></div>`;
 }
+const GLOBE_COVERS = 2000, GLOBE_MIN = 150;   // covers loaded before the globe starts by itself; the fewest it will start with
 async function startGlobe() {
   const data = state.data;
   const space = await memo("globe", () => buildSongSpace(data.real, { onProgress: p => { const el = $("globeStatus"); if (el) el.textContent = `Mapping your songs... ${Math.round(p * 100)}%`; } }));
@@ -254,9 +256,28 @@ async function startGlobe() {
   if (state.tab !== "globe" || state.data !== data || !root) return;   // the visitor moved on while it was working
   const status = $("globeStatus"); if (status) status.remove();
   if (!space.songs.length) { root.innerHTML = `<p class="muted">The globe needs a longer history: at least 60 different songs played in listening sessions. Load your full Spotify export to see it.</p>`; fitFrame(); return; }
-  mountGlobe(root, space, { useCovers: state.covers, coverUrl: id => coverCache.get(id), requestCovers: hydrateCovers });
+  const open = useCovers => { mountGlobe(root, space, { useCovers, coverUrl: id => coverCache.get(id) }); fitFrame(); };
+  if (!state.covers) { open(false); return; }
+  // The globe only uses songs whose cover has loaded, so it never shows a blank tile. Load the most played songs first.
+  const ids = space.songs.slice(0, GLOBE_COVERS).map(s => s.id), total = ids.length;
+  root.innerHTML = `<div class="gl-loader"><p><b>Loading album covers</b></p><div class="gl-prog"><i></i></div><p class="gl-load-text muted"></p>
+    <div class="gl-load-actions"><button class="gl-btn" type="button" data-go disabled>Start now</button><button class="gl-btn" type="button" data-plain>Use name tiles instead</button></div>
+    <p class="muted">Covers come from Spotify one after another, so this takes a few minutes for a long history. The globe starts by itself when ${fmt0(total)} songs are ready, or you can start once ${GLOBE_MIN} are in. More songs join the globe while you spin it.</p></div>`;
   fitFrame();
+  prefetchCovers(ids);
+  const go = root.querySelector("[data-go]"), bar = root.querySelector(".gl-prog i"), text = root.querySelector(".gl-load-text");
+  let timer = 0;
+  const finish = useCovers => { clearInterval(timer); open(useCovers); };
+  go.onclick = () => finish(true); root.querySelector("[data-plain]").onclick = () => finish(false);
+  timer = setInterval(() => {
+    if (state.tab !== "globe" || state.data !== data || !root.isConnected) { clearInterval(timer); return; }
+    let ready = 0, tried = 0; for (const id of ids) { if (coverCache.has(id)) { tried++; if (coverCache.get(id)) ready++; } }
+    bar.style.width = (100 * tried / total).toFixed(1) + "%"; text.textContent = `${fmt0(ready)} covers loaded of ${fmt0(total)} songs`;
+    go.disabled = ready < GLOBE_MIN;
+    if (tried >= total) finish(true);
+  }, 400);
 }
+const fmt0 = n => n.toLocaleString();
 
 function tabCard() {
   const { real } = state.data;
@@ -301,26 +322,78 @@ let coverWorkers = 0;
 const coverImg = id => `<img data-id="${esc(id)}" alt="" width="40" height="40" ${coverCache.get(id) ? `src="${esc(coverCache.get(id))}"` : ""}>`;
 const safeImage = u => { try { const h = new URL(u).hostname; return h.endsWith(".spotifycdn.com") || h.endsWith(".scdn.co"); } catch { return false; } };
 
+// Covers come from Spotify's public lookup, which answers too many requests too fast with an error the browser reports as a network failure.
+// So lookups go out at a fixed pace, every worker backs off together when one fails, a failed song is tried again, the browser image cache is
+// warmed (a cover shows the moment its tile does), and background lookups for places the visitor has already left are dropped.
+const COVER_WORKERS = 3, COVER_GAP_MS = 200, COVER_TRIES = 6;
+const coverWait = new Map(), coverImages = new Map(), coverTries = new Map(), urgentIds = new Set();   // coverImages keeps the preloaded images alive
+let coverNext = 0, coverBackoff = 0;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function waiterFor(id) { let w = coverWait.get(id); if (!w) { w = {}; w.promise = new Promise(r => { w.resolve = r; }); coverWait.set(id, w); } return w; }
+function settle(id) { const w = coverWait.get(id); if (w) { w.resolve(); coverWait.delete(id); } urgentIds.delete(id); coverTries.delete(id); }
+function enqueueCover(id, urgent) {
+  if (coverCache.has(id)) return;
+  waiterFor(id);
+  if (urgent) urgentIds.add(id);
+  const at = coverQueue.indexOf(id);
+  if (at >= 0) { if (urgent && at > 0) { coverQueue.splice(at, 1); coverQueue.unshift(id); } return; }
+  if (urgent) coverQueue.unshift(id); else coverQueue.push(id);
+}
+function startCoverWorkers() { while (coverWorkers < COVER_WORKERS && coverQueue.length) { coverWorkers++; coverWorker(); } }
+
+/** Ask for the covers of everything in the panel now (urgent). */
 function hydrateCovers() {
   if (!state.covers) return;
   for (const img of $("panel").querySelectorAll("img[data-id]")) {
     const id = img.dataset.id;
     if (coverCache.has(id)) { if (coverCache.get(id) && !img.src) img.src = coverCache.get(id); continue; }
-    if (!coverQueue.includes(id)) coverQueue.push(id);
+    enqueueCover(id, true);
   }
-  while (coverWorkers < 4 && coverQueue.length) { coverWorkers++; coverWorker(); }
+  startCoverWorkers();
 }
+/**
+ * Look these songs' covers up in the background; the promise resolves when each has loaded or been given up on.
+ * With replace: true this list is the whole wish list: background lookups for anything not on it are dropped.
+ */
+function prefetchCovers(ids, { replace = false } = {}) {
+  if (!state.covers) return Promise.resolve();
+  if (replace) {
+    const keep = new Set(ids);
+    for (let i = coverQueue.length - 1; i >= 0; i--) if (!urgentIds.has(coverQueue[i]) && !keep.has(coverQueue[i])) settle(coverQueue.splice(i, 1)[0]);
+  }
+  const waits = [];
+  for (const id of ids) { if (coverCache.has(id)) continue; enqueueCover(id, false); waits.push(waiterFor(id).promise); }
+  startCoverWorkers();
+  return Promise.all(waits);
+}
+/** The cover image url, "" when Spotify has none, or null when the lookup failed (rate limited or offline). */
+async function lookupCover(id) {
+  try {
+    const r = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent("https://open.spotify.com/track/" + id)}`);
+    if (r.ok) { const j = await r.json(); return safeImage(j.thumbnail_url) ? j.thumbnail_url : ""; }
+    return r.status >= 500 || r.status === 429 ? null : "";
+  } catch { return null; }
+}
+const preloadImage = url => new Promise(res => { const im = new Image(); im.onload = im.onerror = () => res(); im.src = url; coverImages.set(url, im); if (coverImages.size > 300) coverImages.delete(coverImages.keys().next().value); });
 
 async function coverWorker() {
   while (coverQueue.length && state.covers) {
+    const slot = Math.max(Date.now(), coverNext); coverNext = slot + COVER_GAP_MS;   // reserve the next free moment, so all workers together keep to one pace
+    if (slot > Date.now()) await sleep(slot - Date.now());
     const id = coverQueue.shift();
-    let url = "";
-    try {
-      const r = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent("https://open.spotify.com/track/" + id)}`);
-      if (r.ok) { const j = await r.json(); if (safeImage(j.thumbnail_url)) url = j.thumbnail_url; }
-    } catch { /* offline or blocked: leave it blank */ }
+    if (id === undefined) break;
+    const url = await lookupCover(id);
+    if (url === null) {   // failed: everyone waits longer, and this song goes back in the queue (a few times)
+      coverBackoff = Math.min(30000, coverBackoff ? coverBackoff * 2 : 2000); coverNext = Math.max(coverNext, Date.now() + coverBackoff);
+      const n = (coverTries.get(id) || 0) + 1; coverTries.set(id, n);
+      if (n < COVER_TRIES) { coverQueue.unshift(id); continue; }
+      settle(id); continue;
+    }
+    coverBackoff = 0;
+    if (url) await preloadImage(url);
     coverCache.set(id, url);
     if (url) for (const img of document.querySelectorAll(`#panel img[data-id="${id}"]`)) img.src = url;
+    settle(id);
   }
   coverWorkers--;
 }
