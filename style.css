@@ -68,7 +68,6 @@ small { font-size: .8em; }
 .brand .mark { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--accent); color: #04210e; }
 .bar-nav { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: .95rem; }
 .bar-nav a { color: var(--muted); text-decoration: none; padding: 6px 0; } .bar-nav a:hover { color: var(--fg); }
-.bar-nav a.gh { color: var(--accent-ink); font-weight: 600; }
 .eyebrow { display: inline-flex; align-items: center; gap: 8px; }
 .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 .drop .dt { font-size: 1.3rem; } .drop .dt b { color: var(--accent-ink); }
