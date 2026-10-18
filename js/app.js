@@ -124,7 +124,7 @@ function tabLife() {
   ${brk.length ? table(["From", "To", "Days silent", "Last song before", "First song after"], brk.slice(0, 50).map(b => [A.dayText(b.start), A.dayText(b.end), String(b.days), `${esc(b.lastSong)} (${esc(b.lastArtist)})`, `${esc(b.firstSong)} (${esc(b.firstArtist)})`])) : ""}`;
 }
 
-const PALETTE = ["#34d399", "#fbbf6a", "#60a5fa", "#fb7185", "#a78bfa", "#2dd4bf", "#f472b6", "#94a3b8"];
+const PALETTE = ["#83c9ff", "#0068c9", "#ffabab", "#ff2b2b", "#7defa1", "#29b09d", "#ffd16a", "#ff8700"];   // Streamlit's chart colours
 
 function tabYear() {
   const { real } = state.data;
@@ -446,8 +446,8 @@ document.addEventListener("click", e => {
   if (!b) return;
   const f = +b.dataset.sfocus, root = b.closest("[data-stream]");
   stream.focus = stream.focus === f ? null : f;
-  root.querySelectorAll("[data-slayer]").forEach(p => p.setAttribute("fill-opacity", stream.focus === null || +p.dataset.slayer === stream.focus ? 1 : .18));
-  root.querySelectorAll("[data-sedge]").forEach(p => p.setAttribute("stroke-opacity", stream.focus === null || +p.dataset.sedge === stream.focus ? .95 : .15));
+  root.querySelectorAll("[data-slayer]").forEach(p => p.setAttribute("fill-opacity", stream.focus === null || +p.dataset.slayer === stream.focus ? .5 : .08));
+  root.querySelectorAll("[data-sedge]").forEach(p => p.setAttribute("stroke-opacity", stream.focus === null || +p.dataset.sedge === stream.focus ? 1 : .15));
   root.querySelectorAll(".sleg-b").forEach(c => { const on = stream.focus === null || +c.dataset.sfocus === stream.focus; c.classList.toggle("dim", !on); c.setAttribute("aria-pressed", String(+c.dataset.sfocus === stream.focus)); });
 });
 function streamTip() { let t = $("stip"); if (!t) { t = document.createElement("div"); t.id = "stip"; t.className = "stip"; document.body.appendChild(t); } return t; }
