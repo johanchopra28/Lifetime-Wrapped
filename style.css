@@ -229,3 +229,11 @@ button { font: inherit; }
 .gl-hint { font-size: .82rem; line-height: 1.6; margin-top: 12px; }
 .gl-status { padding: 10px 14px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); }
 @media (max-width: 780px) { .gl-wrap { grid-template-columns: 1fr; } }
+.gl-loading { position: absolute; inset: 0; z-index: 8; display: grid; place-items: center; background: rgba(11, 14, 19, .86); color: #e6eaf1; font-size: .95rem; text-align: center; padding: 20px; }
+.gl-loading[hidden] { display: none; }
+.gl-loading .gl-load-text { margin: 0 0 12px; }
+.gl-loader { max-width: 560px; padding: 22px 24px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
+.gl-prog { height: 10px; border-radius: 6px; background: var(--cell); overflow: hidden; margin: 6px 0 10px; }
+.gl-prog i { display: block; height: 100%; width: 0; border-radius: 6px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .4s; }
+.gl-load-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.gl-btn:disabled { opacity: .4; cursor: default; }
