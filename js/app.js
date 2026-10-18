@@ -205,7 +205,7 @@ function tabForgot() {
   <label class="ctl">At least this many real plays: <b>${state.forgotMin}</b><input type="range" min="10" max="300" step="5" value="${state.forgotMin}" data-bind="forgotMin"></label>
   <label class="ctl">Not played for at least (months): <b>${state.forgotMonths}</b><input type="range" min="3" max="48" value="${state.forgotMonths}" data-bind="forgotMonths"></label></div>
   <p><b>${n0(f.total)} songs</b> match. The ones you played most, then dropped:</p>
-  ${f.list.length ? songTable("forgot", "Forgotten favourites", f.list, [{ h: "Plays", f: s => n0(s.plays) }, { h: "Peak year", f: s => String(s.peakYear) }, { h: "Last played", f: s => A.dayText(s.lastDay) }, { h: "Quiet for", f: s => Math.round(s.quietDays / 30.4) + " months" }]) : "<p>Nothing matches. Lower the numbers above.</p>"}`;
+  ${f.list.length ? songTable("forgot", "Forgotten favourites", f.list, [{ h: "Plays", f: s => n0(s.plays) }, { h: "Peak year", f: s => String(s.peakYear) }, { h: "Last played", f: s => A.dayText(s.lastDay) }, { h: "Quiet for", f: s => Math.round(s.quietDays / 30.4) + " months" }], "scrolly") : "<p>Nothing matches. Lower the numbers above.</p>"}`;
 }
 
 function tabMissed() {
