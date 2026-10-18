@@ -1,5 +1,6 @@
 import * as A from "./analysis.js";
 import { loadFiles } from "./load.js";
+import { sampleHistory } from "./sample.js";
 import { esc, bars, hbars, stacked, heatmap, calendar } from "./charts.js";
 
 const $ = id => document.getElementById(id);
@@ -21,7 +22,8 @@ const memo = (name, fn, ...args) => {
 const lists = new Map();   // downloadable lists, by id
 
 // ------------------------------------------------------------------ loading
-async function handleFiles(files) {
+async function handleFiles(files, sample = false) {
+  state.sample = sample;
   const status = $("status");
   status.hidden = false;
   status.classList.remove("error");
@@ -80,7 +82,7 @@ function render() {
   const traits = memo("traits", () => A.personality(real));
   $("metrics").innerHTML = metric("Hours listened", n0(ov.hours), `${(ov.hours / 24).toFixed(0)} full days of music`) + metric("Real plays", n0(ov.realPlays), "A real play is 30 seconds or more")
     + metric("Different songs", n0(ov.songs)) + metric("Different artists", n0(ov.artists)) + metric("Days you listened", n0(ov.activeDays), `About ${ov.perActiveDay.toFixed(0)} real plays a day`);
-  $("range").textContent = `${A.dayText(ov.firstDay)} to ${A.dayText(ov.lastDay)}. ${n0(all.length)} plays in all; a real play lasts 30 seconds or more.`;
+  $("range").textContent = (state.sample ? "Sample data, made up for this demo, not a real history. " : "") + `${A.dayText(ov.firstDay)} to ${A.dayText(ov.lastDay)}. ${n0(all.length)} plays in all; a real play lasts 30 seconds or more.`;
   $("personality").innerHTML = `<b>Your listening personality:</b> ${traits.map(t => `<span class="chip">${esc(t[0])}</span>`).join(" ")}<p class="muted">${traits.map(t => `<b>${esc(t[0])}:</b> ${esc(t[1])}`).join(" ")}</p>`;
   renderExclusions();
   $("tabs").innerHTML = TABS.map(([k, label]) => `<button role="tab" class="${state.tab === k ? "on" : ""}" data-act="tab" data-k="${k}">${esc(label)}</button>`).join("");
@@ -346,6 +348,12 @@ document.addEventListener("change", e => {
 for (const ev of ["dragenter", "dragover"]) $("drop").addEventListener(ev, e => { e.preventDefault(); $("drop").classList.add("over"); });
 for (const ev of ["dragleave", "drop"]) $("drop").addEventListener(ev, e => { e.preventDefault(); $("drop").classList.remove("over"); });
 $("drop").addEventListener("drop", e => handleFiles(e.dataTransfer.files));
+
+// "Try it with sample data": a made-up history, generated here in the browser and fed through the normal loader.
+$("sampleBtn").addEventListener("click", () => {
+  const file = new File([JSON.stringify(sampleHistory())], "Streaming_History_Audio_sample.json", { type: "application/json" });
+  handleFiles([file], true);
+});
 
 // "Do not take our word for it" button on the landing page: shows or hides the explanation.
 $("verifyBtn").addEventListener("click", () => {

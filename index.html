@@ -12,40 +12,47 @@
 <body>
 <main>
   <section id="landing">
+    <header class="bar">
+      <a class="brand" href="#landing"><span class="mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.6L19.5 10l-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.4z"/></svg></span>Lifetime Wrapped</a>
+      <nav class="bar-nav" aria-label="Sections">
+        <a href="#how">Get your file</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#features">What you get</a>
+        <a class="gh" href="https://github.com/johanchopra28/Lifetime-Wrapped" target="_blank" rel="noopener noreferrer">Code on GitHub</a>
+      </nav>
+    </header>
+
     <div class="hero">
-      <span class="eyebrow">Free &middot; private &middot; runs in your browser</span>
+      <span class="eyebrow"><i class="dot"></i>Free, private, runs in your browser</span>
       <h1>See every year of your listening <em>in one place.</em></h1>
-      <p class="lead">Not just one year. Every song, artist and late night since you started, with the song that ruled each month, the years you changed taste, and the songs you quietly left behind.</p>
+      <p class="lead">Drop in the history Spotify gave you. Get your top songs, the song that ruled each month, when you listen, what you keep coming back to, and cards to share.</p>
 
       <label id="drop" class="drop">
         <input type="file" id="fileInput" accept=".zip,.json" multiple>
-        <span class="up">&uarr;</span>
-        <b>Choose your Spotify zip</b>
-        <span>or drop it here</span>
-        <span class="muted">The file Spotify emailed you, named like <i>my_spotify_data.zip</i>. The JSON files inside it work too.</span>
+        <span class="up"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4l4 4M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg></span>
+        <span class="dt"><b>Choose your Spotify zip</b> or drop it here</span>
+        <span class="muted">The file named like <i>my_spotify_data.zip</i>. You can also pick the JSON files inside it. Big histories take a few seconds.</span>
       </label>
       <p id="status" class="status" hidden></p>
-      <ul class="trust"><li>Never uploaded</li><li>Nothing stored</li><li>No cookies or tracking</li><li>Open, readable code</li></ul>
+      <div class="sample-row">
+        <button type="button" id="sampleBtn" class="btn-primary">Try it with sample data</button>
+        <span class="muted">No export yet? Spotify can take days to send it. See what you will get.</span>
+      </div>
       <p class="by">Created by <a class="who" href="https://github.com/sarthakgh29" target="_blank" rel="noopener noreferrer">Sarthak Sharma</a> and <a class="who" href="https://github.com/johanchopra28" target="_blank" rel="noopener noreferrer">Johan Chopra</a></p>
     </div>
 
-    <div class="preview">
-      <span class="tag">Example, not real data</span>
-      <div class="mock">
-        <div class="stats">
-          <div class="stat"><b>6,214</b><span>hours listened</span></div>
-          <div class="stat"><b>97,380</b><span>real plays</span></div>
-          <div class="stat"><b>14,902</b><span>different songs</span></div>
-          <div class="stat"><b>4,310</b><span>different artists</span></div>
-        </div>
-        <div>
-          <h4>The song that ruled each month</h4>
-          <ol><li>Midnight Drive <small>March 2023 &middot; 61 plays</small></li><li>Paper Planes at Noon <small>April 2023 &middot; 48 plays</small></li><li>Slow Burn <small>May 2023 &middot; 73 plays</small></li></ol>
-        </div>
+    <div class="section" id="how">
+      <h2>Where do I get the file?</h2>
+      <p class="sub">It comes from Spotify, and it is free. You ask for it once.</p>
+      <div class="steps">
+        <div class="step"><b>Open Privacy settings</b><p>Sign in at spotify.com, then go to Account and open Privacy settings.</p></div>
+        <div class="step"><b>Request the extended history</b><p>Under Download your data, tick <b>Extended streaming history</b> and confirm the request by email.</p></div>
+        <div class="step"><b>Wait, then drop the zip</b><p>Spotify emails you a link. Download the zip and drop it in the box above.</p></div>
       </div>
+      <p class="warn"><b>Pick the right option.</b> The shorter <i>Account data</i> download only covers the last year, so it shows far less. You need <b>Extended streaming history</b>. Spotify says it can take up to 30 days to arrive.</p>
     </div>
 
-    <div class="section">
+    <div class="section" id="features">
       <h2>What you get</h2>
       <p class="sub">Eight ways to look at the same history.</p>
       <div class="features">
@@ -60,16 +67,6 @@
       </div>
     </div>
 
-    <div class="section">
-      <h2>How to get your file</h2>
-      <p class="sub">Spotify has to prepare it, so ask for it now.</p>
-      <div class="steps">
-        <div class="step"><b>Open privacy settings</b><p>Sign in at spotify.com, then Account, then Privacy settings.</p></div>
-        <div class="step"><b>Ask for your history</b><p>Under Download your data, tick <b>Extended streaming history</b> and request it.</p></div>
-        <div class="step"><b>Drop the zip above</b><p>Spotify emails a link (it can take days). Download the zip and drop it here.</p></div>
-      </div>
-      <p class="muted" style="text-align:center;margin-top:12px">The shorter "Account data" download only covers the last year, so it shows far less.</p>
-    </div>
 
     <div class="section" id="privacy">
       <h2>Your data stays on your computer</h2>
