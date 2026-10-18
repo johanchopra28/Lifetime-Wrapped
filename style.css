@@ -163,15 +163,19 @@ button { font: inherit; }
 .hfill { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 6px; }
 .hval { color: var(--muted); font-variant-numeric: tabular-nums; }
 
-.wcard { max-width: 640px; padding: 28px; border-radius: 26px; color: #f4fff7; box-shadow: var(--shadow);
-  background: radial-gradient(circle at 0% 0%, #1ed760 0%, transparent 45%), radial-gradient(circle at 100% 100%, #7c5cff 0%, transparent 50%), #0d2a1a; }
-.wcard h3 { font-size: 2.6rem; margin: 0; } .wcard .sub { margin: 0 0 16px; opacity: .85; }
-.wcard .big { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
-.wcard .big b { font-size: 1.9rem; display: block; line-height: 1.1; } .wcard .big span { opacity: .85; font-size: .82rem; }
-.wcard ol { margin: 4px 0; padding-left: 20px; } .wcard li { margin: 3px 0; } .wcard li small { opacity: .8; display: block; }
-.wcard h4 { margin: 8px 0 4px; text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; opacity: .85; }
-.collage { display: flex; gap: 8px; margin: 6px 0 16px; }
-.collage img { width: 20%; aspect-ratio: 1; border-radius: 10px; object-fit: cover; background: rgba(255, 255, 255, .12); }
+.wcard { max-width: 860px; padding: 28px 32px; border-radius: 20px; color: #fff; box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
+  background: linear-gradient(135deg, #0b3d2e 0%, #1db954 55%, #7be39a 100%); }
+.wcard h3 { font-size: 2.6rem; letter-spacing: -.02em; margin: 0; color: #fff; } .wcard .sub { margin: 4px 0 18px; opacity: .85; }
+.wcard .big { display: flex; flex-wrap: wrap; gap: 14px 30px; margin: 10px 0 24px; }
+.wcard .big div { min-width: 120px; } .wcard .big b { font-size: 2rem; display: block; line-height: 1.1; } .wcard .big span { opacity: .85; font-size: .85rem; }
+.wcard .cgrid { display: grid; grid-template-columns: 200px 1fr 1fr; gap: 24px; align-items: start; }
+.wcard .cover, .wcard .cover-ph { width: 200px; height: 200px; border-radius: 12px; object-fit: cover; box-shadow: 0 6px 20px rgba(0, 0, 0, .4); display: block; }
+.wcard .cover-ph { display: grid; place-items: center; font-size: 4.5rem; background: rgba(255, 255, 255, .16); }
+.wcard .top1 { font-weight: 700; font-size: 1.1rem; margin-top: 8px; }
+.wcard ol { margin: 6px 0 0; padding-left: 20px; } .wcard li { margin: 3px 0; } .wcard li small { opacity: .8; display: block; font-size: .8rem; }
+.wcard h4 { margin: 0; text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; opacity: .85; font-weight: 500; }
+.wcard .k { opacity: .8; font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; margin-top: 14px; } .wcard .v { font-weight: 600; }
+@media (max-width: 700px) { .wcard .cgrid { grid-template-columns: 1fr; } .wcard .cover, .wcard .cover-ph { width: 160px; height: 160px; } }
 .foot { margin-top: 44px; text-align: center; }
 [hidden] { display: none !important; }
 @media (max-width: 640px) { main { padding: 18px 12px 60px; } .mock { grid-template-columns: 1fr; } .hero { padding-top: 28px; } th, td { padding: 8px 8px; } }
