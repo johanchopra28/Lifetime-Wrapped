@@ -294,9 +294,12 @@ function tabCard() {
     body = cardHtml({ label: String(y), sub: `${n0(c.newSongs)} songs new to you`, minutes: c.hours * 60, plays: c.plays,
       songs: c.songs, artists: c.artists, ts: c.topSongs, ta: c.topArtists, album: A.topAlbums(real, 1, y)[0], best: c.busiest });
   }
-  return `<h2>Which wrapped? ${sel}</h2>${body}<p class="muted">Screenshot the card to share it. Nothing is uploaded anywhere.</p>`;
+  return `<h2>Which wrapped? ${sel}</h2>${body}<p class="actions"><button data-act="card-png">Download card as image</button></p><p class="muted">Saved as a PNG on your own device. Nothing is uploaded anywhere.</p>`;
 }
-function cardHtml({ label, sub, minutes, plays, songs, artists, ts, ta, album, best }) {
+let lastCard = null;   // what the card on screen shows, so the download button can draw the same thing
+function cardHtml(c) {
+  lastCard = c;
+  const { label, sub, minutes, plays, songs, artists, ts, ta, album, best } = c;
   const top = ts[0];
   // The cover only appears when the visitor has switched album covers on; otherwise a plain tile keeps the layout.
   const cover = state.covers
@@ -311,6 +314,38 @@ function cardHtml({ label, sub, minutes, plays, songs, artists, ts, ta, album, b
     <div><h4>Top songs</h4><ol>${ts.map(x => `<li>${esc(x.name)} <small>${esc(x.artist)}</small></li>`).join("")}</ol></div>
     <div><h4>Top artists</h4><ol>${ta.map(x => `<li>${esc(x.artist)} <small>${n0(x.plays)} plays</small></li>`).join("")}</ol>${albumHtml}${bestHtml}</div>
   </div></div>`;
+}
+
+/** Draws the wrapped card on a canvas (1080 x 1350, the shape Instagram stories and posts like) and saves it as a PNG. No cover art, so nothing is cross-origin. */
+function downloadCard() {
+  const c = lastCard; if (!c) return;
+  const W = 1080, H = 1350, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const g = cv.getContext("2d"), font = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+  const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#0b3d2e"); bg.addColorStop(.55, "#1db954"); bg.addColorStop(1, "#7be39a");
+  g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  const clip = (t, w) => { t = String(t); while (g.measureText(t).width > w && t.length > 1) t = t.slice(0, -2) + "..."; return t; };
+  const text = (t, x, y, size, weight, alpha, w) => { g.font = `${weight} ${size}px ${font}`; g.fillStyle = `rgba(255,255,255,${alpha})`; g.fillText(w ? clip(t, w) : t, x, y); };
+  g.textBaseline = "alphabetic";
+  text("LIFETIME WRAPPED", 80, 120, 28, 600, .8);
+  text(c.label, 80, 230, 120, 800, 1);
+  text(c.sub, 80, 290, 34, 400, .85, W - 160);
+  [[c.minutes, "minutes listened"], [c.plays, "real plays"], [c.songs, "different songs"], [c.artists, "different artists"]].forEach(([v, l], k) => {
+    const x = 80 + (k % 2) * 480, y = 420 + Math.floor(k / 2) * 150;
+    text(n0(v), x, y, 70, 800, 1); text(l, x, y + 42, 28, 400, .85);
+  });
+  const top = c.ts[0];
+  text("#1 SONG", 80, 760, 26, 600, .75);
+  text(top.name, 80, 815, 48, 700, 1, W - 160); text(`${top.artist}, ${n0(top.plays)} plays`, 80, 862, 30, 400, .85, W - 160);
+  const col = (title, rows, x) => { text(title, x, 960, 26, 600, .75); rows.forEach(([a, b], k) => { text(`${k + 1}. ${a}`, x, 1004 + k * 64, 30, 600, 1, 440); text(b, x + 38, 1036 + k * 64, 24, 400, .8, 400); }); };
+  col("TOP SONGS", c.ts.map(x => [x.name, x.artist]), 80);
+  col("TOP ARTISTS", c.ta.map(x => [x.artist, `${n0(x.plays)} plays`]), 570);
+  text("Made privately in my browser with Lifetime Wrapped", 80, H - 22, 22, 400, .65);
+  cv.toBlob(b => {
+    if (!b) return;
+    const url = URL.createObjectURL(b), a = document.createElement("a");
+    a.href = url; a.download = "lifetime-wrapped-" + String(c.label).toLowerCase() + ".png"; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, "image/png");
 }
 
 // ------------------------------------------------------------------ album covers
@@ -428,6 +463,7 @@ document.addEventListener("click", async e => {
   else if (act === "month") { state.month = state.month === i + 1 ? null : i + 1; renderPanel(); }
   else if (act === "drift") { state.drift = t.dataset.k; renderPanel(); }
   else if (act === "lane") { state.lane = +t.dataset.k; renderPanel(); }
+  else if (act === "card-png") downloadCard();
   else if (act === "unexclude") { state.excluded.delete(t.dataset.k); build(); }
   else if (act === "copy" || act === "copy100") {
     const l = act === "copy100" ? A.topSongs(state.data.real, 100, state.year) : lists.get(t.dataset.id).list;
