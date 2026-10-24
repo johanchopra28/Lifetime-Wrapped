@@ -316,9 +316,19 @@ function cardHtml(c) {
   </div></div>`;
 }
 
-/** Draws the wrapped card on a canvas (1080 x 1350, the shape Instagram stories and posts like) and saves it as a PNG. No cover art, so nothing is cross-origin. */
-function downloadCard() {
+/** The #1 song's cover as an image a canvas may draw, or null. Spotify's image host sends CORS headers, so asking for it that way keeps the canvas clean. */
+async function cardCover(id) {
+  if (!state.covers) return null;
+  try {
+    if (!coverCache.has(id)) await Promise.race([prefetchCovers([id]), sleep(6000)]);
+    const url = coverCache.get(id); if (!url || !safeImage(url)) return null;
+    return await new Promise(res => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => res(im); im.onerror = () => res(null); im.src = url; });
+  } catch { return null; }
+}
+/** Draws the wrapped card on a canvas (1080 x 1350, the shape Instagram stories and posts like) and saves it as a PNG. */
+async function downloadCard() {
   const c = lastCard; if (!c) return;
+  const top = c.ts[0], cover = await cardCover(top.id);   // null when covers are off, not found, or the image host refuses a canvas copy
   const W = 1080, H = 1350, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const g = cv.getContext("2d"), font = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
   const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#0b3d2e"); bg.addColorStop(.55, "#1db954"); bg.addColorStop(1, "#7be39a");
@@ -333,9 +343,10 @@ function downloadCard() {
     const x = 80 + (k % 2) * 480, y = 420 + Math.floor(k / 2) * 150;
     text(n0(v), x, y, 70, 800, 1); text(l, x, y + 42, 28, 400, .85);
   });
-  const top = c.ts[0];
+  const tw = cover ? 600 : W - 160;
+  if (cover) { g.save(); g.beginPath(); g.roundRect(780, 690, 220, 220, 18); g.clip(); g.drawImage(cover, 780, 690, 220, 220); g.restore(); }
   text("#1 SONG", 80, 760, 26, 600, .75);
-  text(top.name, 80, 815, 48, 700, 1, W - 160); text(`${top.artist}, ${n0(top.plays)} plays`, 80, 862, 30, 400, .85, W - 160);
+  text(top.name, 80, 815, 48, 700, 1, tw); text(`${top.artist}, ${n0(top.plays)} plays`, 80, 862, 30, 400, .85, tw);
   const col = (title, rows, x) => { text(title, x, 960, 26, 600, .75); rows.forEach(([a, b], k) => { text(`${k + 1}. ${a}`, x, 1004 + k * 64, 30, 600, 1, 440); text(b, x + 38, 1036 + k * 64, 24, 400, .8, 400); }); };
   col("TOP SONGS", c.ts.map(x => [x.name, x.artist]), 80);
   col("TOP ARTISTS", c.ta.map(x => [x.artist, `${n0(x.plays)} plays`]), 570);
