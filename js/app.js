@@ -332,6 +332,7 @@ async function downloadCard() {
   const W = 1080, H = 1350, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const g = cv.getContext("2d"), font = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
   const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#0b3d2e"); bg.addColorStop(.55, "#1db954"); bg.addColorStop(1, "#7be39a");
+  g.beginPath(); g.roundRect(0, 0, W, H, 72); g.clip();   // rounded corners, transparent outside them
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
   const clip = (t, w) => { t = String(t); while (g.measureText(t).width > w && t.length > 1) t = t.slice(0, -2) + "..."; return t; };
   const text = (t, x, y, size, weight, alpha, w) => { g.font = `${weight} ${size}px ${font}`; g.fillStyle = `rgba(255,255,255,${alpha})`; g.fillText(w ? clip(t, w) : t, x, y); };
