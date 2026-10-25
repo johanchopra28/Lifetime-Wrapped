@@ -337,16 +337,18 @@ async function downloadCard() {
   const text = (t, x, y, size, weight, alpha, w) => { g.font = `${weight} ${size}px ${font}`; g.fillStyle = `rgba(255,255,255,${alpha})`; g.fillText(w ? clip(t, w) : t, x, y); };
   g.textBaseline = "alphabetic";
   text("LIFETIME WRAPPED", 80, 120, 28, 600, .8);
-  text(c.label, 80, 230, 120, 800, 1);
-  text(c.sub, 80, 290, 34, 400, .85, W - 160);
+  text(c.label, 80, 220, 110, 800, 1);
+  text(c.sub, 80, 272, 32, 400, .85, W - 160);
   [[c.minutes, "minutes listened"], [c.plays, "real plays"], [c.songs, "different songs"], [c.artists, "different artists"]].forEach(([v, l], k) => {
-    const x = 80 + (k % 2) * 480, y = 420 + Math.floor(k / 2) * 150;
-    text(n0(v), x, y, 70, 800, 1); text(l, x, y + 42, 28, 400, .85);
+    const x = 80 + (k % 2) * 480, y = 380 + Math.floor(k / 2) * 130;
+    text(n0(v), x, y, 66, 800, 1); text(l, x, y + 40, 28, 400, .85);
   });
-  const tw = cover ? 600 : W - 160;
-  if (cover) { g.save(); g.beginPath(); g.roundRect(780, 690, 220, 220, 18); g.clip(); g.drawImage(cover, 780, 690, 220, 220); g.restore(); }
-  text("#1 SONG", 80, 760, 26, 600, .75);
-  text(top.name, 80, 815, 48, 700, 1, tw); text(`${top.artist}, ${n0(top.plays)} plays`, 80, 862, 30, 400, .85, tw);
+  const tw = cover ? 620 : W - 160;
+  if (cover) { g.save(); g.beginPath(); g.roundRect(800, 590, 200, 200, 18); g.clip(); g.drawImage(cover, 800, 590, 200, 200); g.restore(); }
+  text("#1 SONG", 80, 630, 26, 600, .75);
+  text(top.name, 80, 685, 48, 700, 1, tw); text(`${top.artist}, ${n0(top.plays)} plays`, 80, 732, 30, 400, .85, tw);
+  if (c.album) { text("TOP ALBUM", 80, 850, 26, 600, .75); text(c.album.album, 80, 892, 32, 600, 1, 440); }
+  if (c.best) { text("BIGGEST DAY", 570, 850, 26, 600, .75); text(`${n0(c.best.plays)} plays, ${A.dayText(c.best.dn)}`, 570, 892, 32, 600, 1, 440); }
   const col = (title, rows, x) => { text(title, x, 960, 26, 600, .75); rows.forEach(([a, b], k) => { text(`${k + 1}. ${a}`, x, 1004 + k * 64, 30, 600, 1, 440); text(b, x + 38, 1036 + k * 64, 24, 400, .8, 400); }); };
   col("TOP SONGS", c.ts.map(x => [x.name, x.artist]), 80);
   col("TOP ARTISTS", c.ta.map(x => [x.artist, `${n0(x.plays)} plays`]), 570);
