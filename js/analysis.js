@@ -455,3 +455,67 @@ export function yearCard(real, year) {
   const busiest = busiestDays(r, 1)[0];
   return { ...p, topSongs: topSongs(real, 5, year), topArtists: topArtists(real, 5, year), bestMonth, busiest, streak: streaks(r).streakDays };
 }
+
+// ------------------------------------------------------------------ time machine: what you played on any date
+const dayIdx = new WeakMap();
+function dayIndex(real) {
+  let m = dayIdx.get(real);
+  if (!m) { m = new Map(); for (const r of real) { const a = m.get(r.dn); if (a) a.push(r); else m.set(r.dn, [r]); } dayIdx.set(real, m); }
+  return m;
+}
+/** The day number of a calendar date, or null when it does not exist (30 February, or 29 February in a common year). */
+export function dnOf(y, mo, d) { const t = Date.UTC(y, mo - 1, d); return new Date(t).getUTCMonth() === mo - 1 ? Math.floor(t / DAY_MS) : null; }
+export function dnFromString(s) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); return m ? dnOf(+m[1], +m[2], +m[3]) : null; }
+/** The plays from `before` days ahead of day dn to `after` days after it. */
+export function dayRows(real, dn, before = 0, after = 0) {
+  const idx = dayIndex(real), out = [];
+  for (let k = dn - before; k <= dn + after; k++) { const a = idx.get(k); if (a) for (const r of a) out.push(r); }
+  return out;
+}
+function artistsOf(rows, n) {
+  const per = new Map();
+  for (const r of rows) { let a = per.get(r.artist); if (!a) per.set(r.artist, a = { artist: r.artist, key: r.artist, plays: 0, hours: 0 }); a.plays++; a.hours += r.hours; }
+  return [...per.values()].sort(byPlaysThenHours).slice(0, n);
+}
+export function dayReport(real, dn) {
+  const rows = dayRows(real, dn), hourly = new Array(24).fill(0);
+  let hours = 0; for (const r of rows) { hourly[r.h]++; hours += r.hours; }
+  const sg = songs(rows);
+  return { dn, plays: rows.length, hours, hourly, songs: sg, distinctSongs: sg.length, artists: artistsOf(rows, 8) };
+}
+/** The same calendar date in every year of the history, newest first, with how much you played and the top song. */
+export function sameDayAcrossYears(real, mo, d) {
+  if (!real.length) return [];
+  const idx = dayIndex(real), first = real[0].y, last = real[real.length - 1].y, out = [];
+  for (let y = last; y >= first; y--) {
+    const dn = dnOf(y, mo, d); if (dn == null) continue;
+    const rows = idx.get(dn) || [], top = rows.length ? songs(rows)[0] : null;
+    out.push({ year: y, dn, plays: rows.length, top: top && { name: top.name, artist: top.artist, plays: top.plays } });
+  }
+  return out;
+}
+/** The closest days with music before and after dn (null when there are none within ten years). */
+export function nearestPlayDays(real, dn) {
+  const idx = dayIndex(real); let before = null, after = null;
+  for (let k = 1; k <= 3650 && (before == null || after == null); k++) {
+    if (before == null && idx.has(dn - k)) before = dn - k;
+    if (after == null && idx.has(dn + k)) after = dn + k;
+  }
+  return { before, after };
+}
+/** For the "on this day" bubble: the past year whose same date has the song you played most, or the same week if that date was silent. */
+export function onThisDay(real, today) {
+  const mo = today.getMonth() + 1, d = today.getDate(), y0 = today.getFullYear();
+  const pick = (spread) => {
+    let best = null;
+    for (const c of sameDayAcrossYears(real, mo, d)) {
+      if (c.year >= y0) continue;
+      const rows = dayRows(real, c.dn, spread, spread); if (!rows.length) continue;
+      const top = songs(rows)[0];
+      const cand = { years: y0 - c.year, dn: c.dn, exact: spread === 0, name: top.name, artist: top.artist, plays: top.plays };
+      if (!best || cand.plays > best.plays || (cand.plays === best.plays && cand.years < best.years)) best = cand;
+    }
+    return best;
+  };
+  return pick(0) || pick(3);
+}

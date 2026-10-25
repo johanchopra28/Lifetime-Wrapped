@@ -106,7 +106,7 @@ small { font-size: .8em; }
 .opts > details { flex: 1 1 320px; }
 details { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 16px; margin: 8px 0; }
 summary { cursor: pointer; font-weight: 600; }
-input[list], select { font: inherit; color: inherit; background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; max-width: 100%; }
+input[list], input[type=date], select { font: inherit; color: inherit; background: var(--bg2); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; max-width: 100%; }
 input[list] { width: min(440px, 100%); }
 .chips { margin-top: 8px; }
 
@@ -251,3 +251,20 @@ button { font: inherit; }
 .gl-queue b, .gl-queue small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gl-queue small { color: var(--muted); font-size: .78rem; }
 .gl-queue button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 4px 6px; } .gl-queue button:hover { color: var(--fg); }
+
+/* the on-this-day bubble and the time machine */
+.bubble { display: flex; align-items: center; gap: 6px; margin: 12px 0; }
+.bubble-go { flex: 1; display: flex; align-items: center; gap: 12px; text-align: left; font: inherit; color: var(--fg); cursor: pointer; border-radius: 999px; padding: 9px 18px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--card)); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line)); transition: border-color .12s, transform .12s; }
+.bubble-go:hover { border-color: var(--accent); transform: translateY(-1px); }
+.bubble-go small { color: var(--muted); margin-left: 6px; }
+.bubble .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); flex: none; animation: bubblePulse 2.4s ease-out infinite; }
+@keyframes bubblePulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); } 70%, 100% { box-shadow: 0 0 0 9px transparent; } }
+.bubble .go { margin-left: auto; color: var(--accent-ink); font-weight: 600; font-size: .85rem; white-space: nowrap; }
+.bubble-x { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 1.4rem; line-height: 1; padding: 4px 8px; } .bubble-x:hover { color: var(--fg); }
+@media (max-width: 640px) { .bubble-go { border-radius: 18px; flex-wrap: wrap; } .bubble .go { margin-left: 0; } }
+@media (prefers-reduced-motion: reduce) { .bubble .dot { animation: none; } }
+.tm-search { margin: 10px 0 4px; } .tm-search input { margin-left: 8px; color-scheme: dark light; }
+.tm-years button small { color: var(--muted); font-size: .72rem; margin-left: 2px; }
+.tm-years button.on small { color: inherit; opacity: .8; }
+h2.tm-day { margin-top: 1.6em; }

@@ -13,7 +13,7 @@ const link = id => `https://open.spotify.com/track/${id}`;
 const state = {
   raw: null, excluded: new Map(), data: null, tab: "life", year: null, month: null,
   cmpThen: null, cmpNow: null, drift: "songs", lane: 3, breakDays: 3, forgotMin: 40, forgotMonths: 12,
-  missedCap: 15, missedShown: 50, artist: null, calYear: null, card: "all", sel: "", minDays: 3, covers: true,
+  missedCap: 15, missedShown: 50, artist: null, calYear: null, card: "all", sel: "", minDays: 3, covers: true, tmDate: null, bubbleOff: false,
 };
 let memoCache = new Map();
 const memo = (name, fn, ...args) => {
@@ -78,7 +78,7 @@ const metric = (label, value, help = "") => `<div class="metric" ${help ? `title
 
 // ------------------------------------------------------------------ tabs
 const TABS = [["life", "Lifetime"], ["year", "Year by year"], ["cmp", "Compare years"], ["when", "When you listen"], ["habits", "Habits"],
-              ["forgot", "Forgotten favourites"], ["missed", "Missed from artists you love"], ["artist", "Artist deep dive"], ["globe", "Song globe"], ["card", "Wrapped card"]];
+              ["forgot", "Forgotten favourites"], ["missed", "Missed from artists you love"], ["artist", "Artist deep dive"], ["globe", "Song globe"], ["time", "Time machine"], ["card", "Wrapped card"]];
 
 function render() {
   const { real, all } = state.data;
@@ -89,12 +89,13 @@ function render() {
   $("range").textContent = (state.sample ? "Sample data, made up for this demo, not a real history. " : "") + `${A.dayText(ov.firstDay)} to ${A.dayText(ov.lastDay)}. ${n0(all.length)} plays in all; a real play lasts 30 seconds or more.`;
   $("personality").innerHTML = `<b>Your listening personality:</b> ${traits.map(t => `<span class="chip">${esc(t[0])}</span>`).join(" ")}<p class="muted">${traits.map(t => `<b>${esc(t[0])}:</b> ${esc(t[1])}`).join(" ")}</p>`;
   renderExclusions();
+  $("bubble").innerHTML = bubbleHtml();
   $("tabs").innerHTML = TABS.map(([k, label]) => `<button role="tab" class="${state.tab === k ? "on" : ""}" data-act="tab" data-k="${k}">${esc(label)}</button>`).join("");
   renderPanel();
 }
 
 function renderPanel() {
-  const fn = { life: tabLife, year: tabYear, cmp: tabCompare, when: tabWhen, habits: tabHabits, forgot: tabForgot, missed: tabMissed, artist: tabArtist, globe: tabGlobe, card: tabCard }[state.tab];
+  const fn = { life: tabLife, year: tabYear, cmp: tabCompare, when: tabWhen, habits: tabHabits, forgot: tabForgot, missed: tabMissed, artist: tabArtist, globe: tabGlobe, time: tabTime, card: tabCard }[state.tab];
   unmountGlobe();
   $("panel").innerHTML = fn();
   if (state.tab === "globe") startGlobe();
@@ -278,6 +279,47 @@ async function startGlobe() {
   }, 400);
 }
 const fmt0 = n => n.toLocaleString();
+
+// ------------------------------------------------------------------ time machine
+/** The small "on this day" bubble under the headline numbers. Tapping it opens the Time machine on that date. */
+function bubbleHtml() {
+  if (state.bubbleOff) return "";
+  const b = memo("bubble", () => A.onThisDay(state.data.real, new Date()));
+  if (!b) return "";
+  const ago = b.years === 1 ? "a year ago" : `${b.years} years ago`;
+  const what = b.plays >= 3 ? `you were playing <b>${esc(b.name)}</b> on repeat` : `you were listening to <b>${esc(b.name)}</b>`;
+  return `<div class="bubble"><button class="bubble-go" data-act="bubble" data-dn="${b.dn}"><i class="dot"></i>
+    <span>${b.exact ? "On this day" : "Around this day"} ${ago}, ${what} <small>${esc(b.artist)}, ${n0(b.plays)} ${b.plays === 1 ? "play" : "plays"}</small></span><span class="go">Open the time machine</span></button>
+    <button class="bubble-x" data-act="bubble-x" aria-label="Hide this">&times;</button></div>`;
+}
+
+function tabTime() {
+  const { real } = state.data;
+  const ov = memo("ov", () => A.overview(real, state.data.all));
+  const dn = A.dnFromString(state.tmDate) ?? ov.lastDay, date = new Date(dn * 86400000);
+  const mo = date.getUTCMonth() + 1, d = date.getUTCDate(), y = date.getUTCFullYear();
+  const long = date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const across = A.sameDayAcrossYears(real, mo, d);
+  const yearBtns = across.map(c => `<button class="${c.dn === dn ? "on" : ""}" data-act="tm-day" data-dn="${c.dn}" title="${esc(c.top ? c.top.name + ", " + c.plays + " plays that day" : "Nothing played")}">${d} ${A.MONTHS[mo - 1]} ${c.year}<small> ${c.plays ? n0(c.plays) : "none"}</small></button>`).join("");
+  const rep = A.dayReport(real, dn);
+  let body;
+  if (!rep.plays) {
+    const nb = A.nearestPlayDays(real, dn), link = x => x == null ? "" : `<button data-act="tm-day" data-dn="${x}">${A.dayText(x)}</button>`;
+    body = `<p class="muted">Nothing was played on ${esc(long)}.</p><div class="seg">${link(nb.before) && "Closest days with music: "}${link(nb.before)}${link(nb.after)}</div>`;
+  } else {
+    const week = A.songs(A.dayRows(real, dn, 3, 3)).slice(0, 8), month = A.topSongs(real, 8, y, mo);
+    body = `<div class="metrics">${metric("Plays that day", n0(rep.plays))}${metric("Hours", rep.hours.toFixed(1))}${metric("Different songs", n0(rep.distinctSongs))}${metric("Different artists", n0(new Set(A.dayRows(real, dn).map(r => r.artist)).size))}</div>
+    <h3>The songs of the day</h3>${songTable("tm-day", "Songs on " + A.dayText(dn), rep.songs.slice(0, 15), [{ h: "Plays", f: s => n0(s.plays) }])}
+    <div class="two"><div><h3>The artists</h3>${hbars(rep.artists.slice(0, 6).map(a => ({ label: a.artist, value: a.plays, tip: `${n0(a.plays)} plays` })))}</div>
+    <div><h3>What time</h3>${bars(rep.hourly.map((v, h) => ({ label: String(h), value: v, tip: `${h}:00 to ${h}:59, ${v} plays` })), { height: 200 })}</div></div>
+    <h3>That week, three days either side</h3>${songTable("tm-week", "Week around " + A.dayText(dn), week, [{ h: "Plays", f: s => n0(s.plays) }])}
+    <h3>${A.MONTHS[mo - 1]} ${y}, the month</h3>${songTable("tm-month", `Top songs of ${A.MONTHS[mo - 1]} ${y}`, month, [{ h: "Plays", f: s => n0(s.plays) }])}`;
+  }
+  return `<h2>Time machine</h2><p class="muted">Pick any day and see what you were playing. Or jump to the same date in another year.</p>
+  <div class="tm-search"><label>Search a date <input type="date" data-bind="tmDate" value="${A.dayString(dn)}" min="${A.dayString(ov.firstDay)}" max="${A.dayString(ov.lastDay)}"></label></div>
+  <h3>${d} ${A.MONTHS[mo - 1]}, every year</h3><div class="seg tm-years">${yearBtns}</div>
+  <h2 class="tm-day">${esc(long)}</h2>${body}`;
+}
 
 function tabCard() {
   const { real } = state.data;
@@ -477,6 +519,9 @@ document.addEventListener("click", async e => {
   else if (act === "drift") { state.drift = t.dataset.k; renderPanel(); }
   else if (act === "lane") { state.lane = +t.dataset.k; renderPanel(); }
   else if (act === "card-png") downloadCard();
+  else if (act === "bubble") { state.tab = "time"; state.tmDate = A.dayString(+t.dataset.dn); render(); }
+  else if (act === "bubble-x") { state.bubbleOff = true; $("bubble").innerHTML = ""; }
+  else if (act === "tm-day") { state.tmDate = A.dayString(+t.dataset.dn); renderPanel(); }
   else if (act === "unexclude") { state.excluded.delete(t.dataset.k); build(); }
   else if (act === "copy" || act === "copy100") {
     const l = act === "copy100" ? A.topSongs(state.data.real, 100, state.year) : lists.get(t.dataset.id).list;
