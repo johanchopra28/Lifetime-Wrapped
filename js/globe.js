@@ -40,7 +40,7 @@ export function mountGlobe(root, space, opts) {
       <span>Scrolling <span class="gl-seg" data-a="scroll"></span></span><span class="muted gl-count"></span></div>
     <div class="gl-wrap"><div class="gl-stage" tabindex="0" aria-label="Song globe. Use the arrow keys, scroll or swipe to spin it."><div class="gl-globe"></div></div><aside class="gl-info"></aside></div>
     <div class="gl-tray" hidden></div>
-    <p class="muted gl-hint">Spin: click a faded tile, scroll or swipe in any direction (drag it like a map: swipe down to go north, swipe right to go west; if that feels backwards on your trackpad, switch "Scrolling" above), or use the arrow keys, with Q, E, Z and C for the corners. Backspace goes back, Space picks a random song, Enter adds the song you are on to your queue.
+    <p class="muted gl-hint">Spin: click a faded tile, scroll or swipe in any direction (drag it like a map: swipe down to go north, swipe right to go west; if that feels backwards on your trackpad, switch "Scrolling" above), or use the arrow keys, with Q, E, Z and C for the corners. Backspace goes back, Space picks a random song, Enter pins the song you are on.
     Songs sit near others you played in the same sittings, so "north" just means the next song that way on that map. Come back to a spot and you find the same songs.</p></div>`;
   const stage = q(".gl-stage"), globe = q(".gl-globe");
 
@@ -151,7 +151,7 @@ export function mountGlobe(root, space, opts) {
   const inQueue = id => queue.findIndex(x => x.id === id);
   function paintAdd() {
     const b = q(".gl-add"); if (!b) return; const c = here(), i = inQueue(c.id);
-    b.textContent = i >= 0 ? "In queue, tap to remove" : queue.length >= QUEUE_MAX ? `Queue is full (${QUEUE_MAX})` : "Add to queue";
+    b.textContent = i >= 0 ? "Pinned, tap to unpin" : queue.length >= QUEUE_MAX ? `Pins are full (${QUEUE_MAX})` : "Pin this song";
     b.disabled = i < 0 && queue.length >= QUEUE_MAX; b.classList.toggle("on", i >= 0);
   }
   function toggleQueue() {
@@ -162,7 +162,7 @@ export function mountGlobe(root, space, opts) {
   function paintTray() {
     const tray = q(".gl-tray"); if (!tray) return;
     tray.hidden = !queue.length;
-    if (queue.length) tray.innerHTML = `<div class="gl-trayhead"><b>Queue</b><span class="muted">${queue.length} song${queue.length === 1 ? "" : "s"}</span>
+    if (queue.length) tray.innerHTML = `<div class="gl-trayhead"><b>Pinned songs</b><span class="muted">${queue.length} song${queue.length === 1 ? "" : "s"}</span>
       <span class="gl-trayact"><button class="gl-btn" data-q="copy">Copy Spotify links</button><button class="gl-btn" data-q="csv">Download CSV</button><button class="gl-btn" data-q="clear">Clear</button></span></div>
       <ol class="gl-queue">${queue.map((s, i) => { const u = opts.useCovers ? opts.coverUrl(s.id) : ""; return `<li>${u ? `<img src="${esc(u)}" alt="" width="40" height="40">` : `<span class="gl-ph"></span>`}<span><b>${esc(s.name)}</b><small>${esc(s.artist)}</small></span><button data-q="rm" data-i="${i}" aria-label="Remove ${esc(s.name)}">&times;</button></li>`; }).join("")}</ol>`;
     else tray.innerHTML = "";
@@ -178,7 +178,7 @@ export function mountGlobe(root, space, opts) {
     } else if (act === "csv") {
       const cell = v => `"${String(v).replace(/"/g, '""')}"`;
       const url = URL.createObjectURL(new Blob(["Song,Artist,Spotify link\n" + queue.map(s => [s.name, s.artist, `https://open.spotify.com/track/${s.id}`].map(cell).join(",")).join("\n")], { type: "text/csv" }));
-      const a = document.createElement("a"); a.href = url; a.download = "Song_globe_queue.csv"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const a = document.createElement("a"); a.href = url; a.download = "Song_globe_pinned.csv"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
   }
   root.addEventListener("click", e => {
