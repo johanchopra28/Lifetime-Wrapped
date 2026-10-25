@@ -13,6 +13,9 @@ const angDiff = (a, b) => { let d = Math.abs(a - b) % 360; return d > 180 ? 360 
 const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 function hue(str) { let h = 0; for (let k = 0; k < str.length; k++) h = (h * 31 + str.charCodeAt(k)) >>> 0; return h % 360; }
 
+const QUEUE_MAX = 100;   // the most songs Spotify takes in one paste
+const queue = [];        // songs the visitor tapped to queue: {id, name, artist}. Kept only in this page, never saved or sent anywhere.
+export const clearQueue = () => { queue.length = 0; };
 let active = null;   // the one mounted globe, so it can be taken down when the tab changes
 
 export function unmountGlobe() { if (active) { active.destroy(); active = null; } }
@@ -36,7 +39,8 @@ export function mountGlobe(root, space, opts) {
     <div class="gl-bar"><button class="gl-btn" data-a="shuffle">Random song</button><button class="gl-btn" data-a="back">Back</button>
       <span>Scrolling <span class="gl-seg" data-a="scroll"></span></span><span class="muted gl-count"></span></div>
     <div class="gl-wrap"><div class="gl-stage" tabindex="0" aria-label="Song globe. Use the arrow keys, scroll or swipe to spin it."><div class="gl-globe"></div></div><aside class="gl-info"></aside></div>
-    <p class="muted gl-hint">Spin: click a faded tile, scroll or swipe in any direction (drag it like a map: swipe down to go north, swipe right to go west; if that feels backwards on your trackpad, switch "Scrolling" above), or use the arrow keys, with Q, E, Z and C for the corners. Backspace goes back, Space picks a random song.
+    <div class="gl-tray" hidden></div>
+    <p class="muted gl-hint">Spin: click a faded tile, scroll or swipe in any direction (drag it like a map: swipe down to go north, swipe right to go west; if that feels backwards on your trackpad, switch "Scrolling" above), or use the arrow keys, with Q, E, Z and C for the corners. Backspace goes back, Space picks a random song, Enter adds the song you are on to your queue.
     Songs sit near others you played in the same sittings, so "north" just means the next song that way on that map. Come back to a spot and you find the same songs.</p></div>`;
   const stage = q(".gl-stage"), globe = q(".gl-globe");
 
@@ -138,10 +142,49 @@ export function mountGlobe(root, space, opts) {
     q(".gl-info").innerHTML = `<h3>${esc(c.name)}</h3><p class="muted gl-artist">${esc(c.artist)}</p>
       <div class="gl-stats"><div><b>${fmt(c.plays)}</b><span>real plays</span></div><div><b>${c.first}</b><span>first heard</span></div><div><b>${c.last}</b><span>last played</span></div></div>
       <svg viewBox="0 0 ${Math.max(246, years.length * bw + 8)} 64" style="width:100%;max-width:300px;height:auto">${bars}</svg>
-      <p><a class="gl-link" href="https://open.spotify.com/track/${esc(c.id)}" target="_blank" rel="noopener noreferrer">Open on Spotify</a></p>
+      <p class="gl-row"><button class="gl-btn gl-add" data-a="queue"></button> <a class="gl-link" href="https://open.spotify.com/track/${esc(c.id)}" target="_blank" rel="noopener noreferrer">Open on Spotify</a></p>
       <h4 class="muted">Where you are on the map</h4><canvas class="gl-mini" width="600" height="600"></canvas>`;
-    drawMini();
+    drawMini(); paintAdd();
   }
+  // ---- the queue tray: tap a song to add it, then copy the links (paste them into a Spotify playlist) or download a list
+  const here = () => S[cells.get(key(pos[0], pos[1]))];
+  const inQueue = id => queue.findIndex(x => x.id === id);
+  function paintAdd() {
+    const b = q(".gl-add"); if (!b) return; const c = here(), i = inQueue(c.id);
+    b.textContent = i >= 0 ? "In queue, tap to remove" : queue.length >= QUEUE_MAX ? `Queue is full (${QUEUE_MAX})` : "Add to queue";
+    b.disabled = i < 0 && queue.length >= QUEUE_MAX; b.classList.toggle("on", i >= 0);
+  }
+  function toggleQueue() {
+    const c = here(), i = inQueue(c.id);
+    if (i >= 0) queue.splice(i, 1); else if (queue.length < QUEUE_MAX) queue.push({ id: c.id, name: c.name, artist: c.artist });
+    paintAdd(); paintTray();
+  }
+  function paintTray() {
+    const tray = q(".gl-tray"); if (!tray) return;
+    tray.hidden = !queue.length;
+    if (queue.length) tray.innerHTML = `<div class="gl-trayhead"><b>Queue</b><span class="muted">${queue.length} song${queue.length === 1 ? "" : "s"}</span>
+      <span class="gl-trayact"><button class="gl-btn" data-q="copy">Copy Spotify links</button><button class="gl-btn" data-q="csv">Download CSV</button><button class="gl-btn" data-q="clear">Clear</button></span></div>
+      <ol class="gl-queue">${queue.map((s, i) => { const u = opts.useCovers ? opts.coverUrl(s.id) : ""; return `<li>${u ? `<img src="${esc(u)}" alt="" width="40" height="40">` : `<span class="gl-ph"></span>`}<span><b>${esc(s.name)}</b><small>${esc(s.artist)}</small></span><button data-q="rm" data-i="${i}" aria-label="Remove ${esc(s.name)}">&times;</button></li>`; }).join("")}</ol>`;
+    else tray.innerHTML = "";
+    if (opts.onResize) opts.onResize();
+  }
+  function trayAction(t) {
+    const act = t.dataset.q;
+    if (act === "rm") { queue.splice(+t.dataset.i, 1); paintAdd(); paintTray(); }
+    else if (act === "clear") { queue.length = 0; paintAdd(); paintTray(); }
+    else if (act === "copy") {
+      const old = t.textContent;
+      Promise.resolve(navigator.clipboard.writeText(queue.map(s => `https://open.spotify.com/track/${s.id}`).join("\n"))).then(() => { t.textContent = `Copied ${queue.length} links`; setTimeout(() => { t.textContent = old; }, 1500); }, () => { t.textContent = "Could not copy"; setTimeout(() => { t.textContent = old; }, 1500); });
+    } else if (act === "csv") {
+      const cell = v => `"${String(v).replace(/"/g, '""')}"`;
+      const url = URL.createObjectURL(new Blob(["Song,Artist,Spotify link\n" + queue.map(s => [s.name, s.artist, `https://open.spotify.com/track/${s.id}`].map(cell).join(",")).join("\n")], { type: "text/csv" }));
+      const a = document.createElement("a"); a.href = url; a.download = "Song_globe_queue.csv"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  }
+  root.addEventListener("click", e => {
+    const t = e.target.closest("[data-q]"); if (t) { trayAction(t); return; }
+    if (e.target.closest('[data-a="queue"]')) toggleQueue();
+  });
   function drawMini() {
     const cv = q(".gl-mini"); if (!cv) return; const g = cv.getContext("2d"), W = cv.width, k = W / 1040, o = 20 * k;
     g.fillStyle = "#0b0e13"; g.fillRect(0, 0, W, W);
@@ -191,6 +234,7 @@ export function mountGlobe(root, space, opts) {
     if (KEYMAP[e.key] !== undefined) { e.preventDefault(); move(KEYMAP[e.key]); }
     else if (e.key === "Backspace") { e.preventDefault(); back(); }
     else if (e.key === " ") { e.preventDefault(); random(); }
+    else if (e.key === "Enter" && !/^(BUTTON|A|INPUT|SELECT)$/.test(document.activeElement.tagName)) { e.preventDefault(); toggleQueue(); }   // Enter queues the song you are on (a focused button keeps its own Enter)
   };
   document.addEventListener("keydown", onKey);
   stage.addEventListener("wheel", e => {
@@ -218,6 +262,7 @@ export function mountGlobe(root, space, opts) {
   const countEl = q(".gl-count");
   const target = Math.min(opts.coverTarget || S.length, S.length);   // the most played songs the loader fetches covers for (S is most played first)
   const paintCount = () => { countEl.textContent = opts.useCovers ? `${fmt(S.slice(0, target).filter(ready).length)} of ${fmt(target)} most played songs` : `${fmt(S.length)} songs to spin through`; };
+  paintTray();
   paintCount(); const countTimer = setInterval(paintCount, 2000);
   random();
   active = { destroy() { cancelAnimationFrame(raf); raf = 0; clearInterval(countTimer); stopChain(); ro.disconnect(); document.removeEventListener("keydown", onKey); }, step, peek: () => [fx, fy], state: () => ({ pos, cells, S }) };

@@ -2,7 +2,7 @@ import * as A from "./analysis.js";
 import { loadFiles } from "./load.js";
 import { sampleHistory } from "./sample.js";
 import { buildSongSpace } from "./embed.js";
-import { mountGlobe, unmountGlobe } from "./globe.js";
+import { mountGlobe, unmountGlobe, clearQueue } from "./globe.js";
 import { esc, bars, hbars, stacked, heatmap, calendar, streamChart, streamTipHtml } from "./charts.js";
 
 const $ = id => document.getElementById(id);
@@ -33,7 +33,7 @@ async function handleFiles(files, sample = false) {
   try {
     const { plays } = await loadFiles(files, msg => { status.textContent = msg; });
     state.raw = plays;
-    state.excluded = new Map();
+    state.excluded = new Map(); clearQueue();
     status.textContent = `Working out your stats from ${n0(plays.length)} plays...`;
     await new Promise(r => setTimeout(r, 30));
     build();
@@ -256,7 +256,7 @@ async function startGlobe() {
   if (state.tab !== "globe" || state.data !== data || !root) return;   // the visitor moved on while it was working
   const status = $("globeStatus"); if (status) status.remove();
   if (!space.songs.length) { root.innerHTML = `<p class="muted">The globe needs a longer history: at least 60 different songs played in listening sessions. Load your full Spotify export to see it.</p>`; fitFrame(); return; }
-  const open = useCovers => { mountGlobe(root, space, { useCovers, coverUrl: id => coverCache.get(id), coverTarget: Math.min(GLOBE_COVERS, space.songs.length) }); fitFrame(); };
+  const open = useCovers => { mountGlobe(root, space, { useCovers, coverUrl: id => coverCache.get(id), coverTarget: Math.min(GLOBE_COVERS, space.songs.length), onResize: fitFrame }); fitFrame(); };
   if (!state.covers) { open(false); return; }
   // The globe only uses songs whose cover has loaded, so it never shows a blank tile. Load the most played songs first.
   const ids = space.songs.slice(0, GLOBE_COVERS).map(s => s.id), total = ids.length;
