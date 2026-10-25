@@ -333,7 +333,7 @@ async function downloadCard() {
   const g = cv.getContext("2d"), font = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
   const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#0b3d2e"); bg.addColorStop(.55, "#1db954"); bg.addColorStop(1, "#7be39a");
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  const clip = (t, w) => { t = String(t); while (g.measureText(t).width > w && t.length > 1) t = t.slice(0, -2) + "..."; return t; };
+  const clip = (t, w) => { t = String(t); if (g.measureText(t).width <= w) return t; while (t.length > 1 && g.measureText(t + "...").width > w) t = t.slice(0, -1); return t.trimEnd() + "..."; };
   const text = (t, x, y, size, weight, alpha, w) => { g.font = `${weight} ${size}px ${font}`; g.fillStyle = `rgba(255,255,255,${alpha})`; g.fillText(w ? clip(t, w) : t, x, y); };
   g.textBaseline = "alphabetic";
   text("LIFETIME WRAPPED", 80, 120, 28, 600, .8);
